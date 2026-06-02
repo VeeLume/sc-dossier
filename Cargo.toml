@@ -1,0 +1,38 @@
+[package]
+name = "sc-dossier"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT"
+description = "Read-only client for Star Citizen account data (owned blueprints) from CIG's game-services gRPC backend, authenticated via the RSI launcher session."
+repository = "https://github.com/VeeLume/sc-dossier"
+keywords = ["star-citizen", "grpc"]
+categories = ["api-bindings"]
+
+[dependencies]
+tonic = { version = "0.14", features = [
+    "transport",
+    "tls-ring",
+    "tls-webpki-roots",
+] }
+tonic-prost = "0.14"
+prost = "0.14"
+prost-types = "0.14"
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+# Launcher-store decryption (AES-256-CBC + PBKDF2-HMAC-SHA512).
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
+sha2 = "0.10"
+regex = "1"
+
+[build-dependencies]
+tonic-prost-build = "0.14"
+protoc-bin-vendored = "3"

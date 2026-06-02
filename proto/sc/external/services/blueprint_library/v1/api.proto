@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package sc.external.services.blueprint_library.v1;
+
+// Trimmed copy from 19h/space-reversing. The google.api.http + openapiv2
+// annotations and their imports are removed (gateway/swagger only, no wire
+// effect); method names, field numbers, and types are unchanged.
+
+import "sc/external/services/blueprint_library/v1/types.proto";
+import "sc/external/common/api/v1/pagination.proto";
+import "sc/external/common/api/v1/query.proto";
+
+message QueryBlueprintEntriesRequest {
+  sc.external.common.api.v1.Query query = 1;
+}
+
+message QueryBlueprintEntriesResponse {
+  sc.external.common.api.v1.PaginationInfo page_info = 1;
+  repeated BlueprintEntry results = 2;
+}
+
+message QueryBlueprintEntriesStreamRequest {
+  sc.external.common.api.v1.Query query = 1;
+}
+
+message QueryBlueprintEntriesStreamResponse {
+  repeated sc.external.services.blueprint_library.v1.BlueprintEntry entries = 1;
+}
+
+service BlueprintLibraryService {
+  // Authenticated by the bearer JWT in metadata. Query is an optional filter;
+  // an empty query returns all entries.
+  rpc QueryBlueprintEntries(QueryBlueprintEntriesRequest)
+      returns (QueryBlueprintEntriesResponse);
+
+  rpc QueryBlueprintEntriesStream(QueryBlueprintEntriesStreamRequest)
+      returns (stream QueryBlueprintEntriesStreamResponse);
+}
