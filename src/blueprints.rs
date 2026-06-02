@@ -1,6 +1,8 @@
 //! Owned-blueprint query and the public [`Blueprint`] type. Returns raw IDs;
 //! GUID→name resolution is the consumer's responsibility.
 
+use std::collections::HashSet;
+
 use tonic::transport::Channel;
 
 use crate::client::BearerAuth;
@@ -9,9 +11,8 @@ use crate::proto::blueprint_library::blueprint_library_service_client::Blueprint
 use crate::proto::blueprint_library::{BlueprintEntry as ProtoEntry, QueryBlueprintEntriesRequest};
 use crate::proto::common_api::{PaginationArguments, Query};
 
-/// Never 100: the backend silently drops entries and mis-reports
-/// `has_next_page` at exactly 100. Always walk the cursor.
-const PAGE_SIZE: u32 = 50;
+/// Inclusive `after` cursor re-emits one row per page boundary; [`owned`] dedupes.
+const PAGE_SIZE: u32 = 200;
 
 /// Where a blueprint came from. `Unknown` carries any future/unrecognised value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -118,6 +119,7 @@ pub(crate) async fn owned(channel: &Channel, jwt: &str) -> Result<Vec<Blueprint>
 
     let mut after = String::new();
     let mut out = Vec::new();
+    let mut seen = HashSet::new();
 
     loop {
         let request = QueryBlueprintEntriesRequest {
@@ -129,7 +131,7 @@ pub(crate) async fn owned(channel: &Channel, jwt: &str) -> Result<Vec<Blueprint>
         };
 
         let response = client.query_blueprint_entries(request).await?.into_inner();
-        out.extend(response.results.iter().map(Blueprint::from_proto));
+        extend_distinct(&mut out, &mut seen, response.results.iter().map(Blueprint::from_proto));
 
         match response.page_info {
             Some(info) if info.has_next_page && !info.end_cursor.is_empty() => {
@@ -140,4 +142,58 @@ pub(crate) async fn owned(channel: &Channel, jwt: &str) -> Result<Vec<Blueprint>
     }
 
     Ok(out)
+}
+
+/// Append blueprints, skipping ids already seen — the cursor re-emits one row
+/// per page boundary (see [`PAGE_SIZE`]). First occurrence wins.
+fn extend_distinct(
+    out: &mut Vec<Blueprint>,
+    seen: &mut HashSet<String>,
+    page: impl IntoIterator<Item = Blueprint>,
+) {
+    for bp in page {
+        if seen.insert(bp.blueprint_id.clone()) {
+            out.push(bp);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn bp(id: &str) -> Blueprint {
+        Blueprint {
+            blueprint_id: id.to_string(),
+            category_id: String::new(),
+            item_class_id: String::new(),
+            tier: 0,
+            remaining_uses: -1,
+            source: BlueprintSource::Unspecified,
+            process_type: BlueprintProcessType::Unspecified,
+            last_used_at: None,
+        }
+    }
+
+    #[test]
+    fn extend_distinct_drops_cross_page_duplicates() {
+        let mut out = Vec::new();
+        let mut seen = HashSet::new();
+
+        extend_distinct(&mut out, &mut seen, [bp("a"), bp("b"), bp("c")]);
+        // Next page re-emits the boundary rows "b"/"c", plus a new "d".
+        extend_distinct(&mut out, &mut seen, [bp("b"), bp("c"), bp("d")]);
+
+        let ids: Vec<&str> = out.iter().map(|b| b.blueprint_id.as_str()).collect();
+        assert_eq!(ids, ["a", "b", "c", "d"], "first occurrence wins, order preserved");
+    }
+
+    #[test]
+    fn extend_distinct_keeps_in_page_order() {
+        let mut out = Vec::new();
+        let mut seen = HashSet::new();
+        extend_distinct(&mut out, &mut seen, [bp("x"), bp("x"), bp("y")]);
+        let ids: Vec<&str> = out.iter().map(|b| b.blueprint_id.as_str()).collect();
+        assert_eq!(ids, ["x", "y"]);
+    }
 }
