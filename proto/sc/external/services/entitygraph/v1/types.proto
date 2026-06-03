@@ -1,0 +1,512 @@
+syntax = "proto3";
+
+package sc.external.services.entitygraph.v1;
+
+// TRIMMED copy of the reverse-engineered proto from 19h/space-reversing
+// (scproto/sc/proto/.../entitygraph/v1/types.proto).
+//
+// This is a READ-ONLY client, so the mutation/shard/notification machinery is
+// dropped along with the imports it dragged in:
+//   - Removed messages: MutationArguments / TransMutationArguments /
+//     ShardArguments / NotificationBehavior / MutationResponse / Shard /
+//     UnstowNotificationContext / Activate|Deactivate|EntitySyncNotificationContext /
+//     EntityPreCondition / ItemPort / *Destination, and the Purpose /
+//     QueueingBehavior / ShardStatus / MutationResponseStatus enums.
+//   - That let us drop the `google/rpc/status`, `google/rpc/error_details`,
+//     `sc/external/common/command/v1` and `sc/external/common/network/v1`
+//     imports. The remaining read-model messages keep their field numbers.
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+import "sc/external/common/types/v1/localization.proto";
+import "sc/external/common/types/v1/transforms.proto";
+import "sc/external/common/game/v1/types.proto";
+
+enum ScopeType {
+    SCOPE_TYPE_UNSPECIFIED = 0;
+    SCOPE_TYPE_SHARD = 1;
+    SCOPE_TYPE_GLOBAL = 2;
+    SCOPE_TYPE_GRAVEYARD = 3;
+    reserved 4;
+    reserved "SCOPE_TYPE_ADMIN";
+}
+
+message Scope {
+    ScopeType type = 1;
+    // For SHARD type scopes, the shard_id specifier of the desired shard
+    string shard_id = 2;
+}
+
+enum EntityNodeLabel {
+    ENTITY_NODE_LABEL_UNSPECIFIED = 0;
+    ENTITY_NODE_LABEL_AGGREGATE_ROOT = 1;
+    ENTITY_NODE_LABEL_STREAMING_GROUP = 2;
+    ENTITY_NODE_LABEL_ROOT = 3;
+    ENTITY_NODE_LABEL_SYSTEM_ROOT = 4;
+    ENTITY_NODE_LABEL_UNSTREAMABLE = 5;
+    ENTITY_NODE_LABEL_STATIC_ZONE = 6;
+    ENTITY_NODE_LABEL_PLAYER = 7;
+    ENTITY_NODE_LABEL_UNSTOWED = 8;
+    ENTITY_NODE_LABEL_LONGTERM = 9;
+    ENTITY_NODE_LABEL_SHARD_STOW = 10;
+    ENTITY_NODE_LABEL_SHARD_STOW_NESTING_ELIGIBLE = 11;
+    ENTITY_NODE_LABEL_TRACK_STOW_CONTEXT = 12;
+    ENTITY_NODE_LABEL_INSTANCE_ENTRY = 13;
+    ENTITY_NODE_LABEL_INSTANCE_MAIN = 14;
+}
+
+enum EntityEdgeType {
+    ENTITY_EDGE_TYPE_UNSPECIFIED = 0;
+    ENTITY_EDGE_TYPE_ATTACHED_TO = 1;
+    ENTITY_EDGE_TYPE_STOWED_IN = 2;
+    ENTITY_EDGE_TYPE_REFERENCES = 3;
+}
+
+enum NodeType {
+    NODE_TYPE_UNSPECIFIED = 0;
+    NODE_TYPE_ENTITY = 1;
+    NODE_TYPE_INVENTORY = 2;
+}
+
+enum AttachmentType {
+    ATTACHMENT_TYPE_UNSPECIFIED = 0;
+    ATTACHMENT_TYPE_ITEM_PORT = 1;
+    ATTACHMENT_TYPE_ATTACHMENT = 2;
+    ATTACHMENT_TYPE_SPAWN = 3;
+    ATTACHMENT_TYPE_PERSISTENT_AREA = 4;
+    ATTACHMENT_TYPE_ZONE = 5;
+    ATTACHMENT_TYPE_SHARD = 6;
+}
+
+// Bitmask flags for entity snapshot variables, matching the C++ eSVF_Type / eSVF_Status BIT indices
+enum EntitySnapshotVariableFlags {
+    ENTITY_SNAPSHOT_VARIABLE_FLAGS_UNSPECIFIED = 0;
+    ENTITY_SNAPSHOT_VARIABLE_FLAGS_NETWORK_SNAPSHOT = 2;
+    ENTITY_SNAPSHOT_VARIABLE_FLAGS_PERSISTENCE = 4;
+    ENTITY_SNAPSHOT_VARIABLE_FLAGS_GLOBAL_READ_ONLY = 8;
+    ENTITY_SNAPSHOT_VARIABLE_FLAGS_GLOBAL_WRITE = 16;
+    ENTITY_SNAPSHOT_VARIABLE_FLAGS_LTP_BACKED = 64;
+    ENTITY_SNAPSHOT_VARIABLE_FLAGS_CREATION_SNAPSHOT = 2048;
+    ENTITY_SNAPSHOT_VARIABLE_FLAGS_DIRTY_ON_REGISTRATION = 4096;
+    ENTITY_SNAPSHOT_VARIABLE_FLAGS_SET_IN_SNAPSHOT = 8192;
+}
+
+message NodeProperties {
+    oneof properties {
+        EntityNodeProperties entity_properties = 1;
+        InventoryNodeProperties inventory_properties = 2;
+    }
+}
+
+message EntityComponent {
+    uint32 hash_id = 1;
+    bool server_only = 2;
+}
+
+message NodeDebugProperties {
+    string entity_class_name = 20;
+    string location_name = 21;
+}
+
+message StowContextFields {
+    optional string inv = 1;
+    optional string shd = 2;
+}
+
+message EntityNodeProperties {
+    // Global unique entity identifier
+    uint64 geid = 1;
+    // Item class GUID crc
+    uint32 class_guid_crc = 2;
+    reserved 3;
+    reserved "item_type";
+    // Type of ownership of this item (cig::RSIOwnership), Owned_PU, Owned_AC...
+    uint64 ownership_type = 4;
+    // Entity flags of this entity (EEntityFlags)
+    uint64 entity_flags = 5;
+    // Game flags of the entity (EPersistentItemGameFlags)
+    uint64 game_flags = 6;
+    // Parent relative orientation
+    sc.external.common.types.v1.Quatd orientation = 7;
+    // Parent relative position
+    sc.external.common.types.v1.Vec3d position = 8;
+    // Parent relative scale
+    double scale = 9;
+    // Radius of the entitiy (float64)
+    double radius = 10;
+    reserved 11;
+    reserved "star_hash";
+    // Stack size of the entity if the entity is a Stack
+    uint32 stack_size = 12;
+    // Optional legal owner of the entity
+    uint64 owner_id = 13;
+    // parent URN of the entity from entitlement
+    string parent_urn = 14;
+    // Labels representing the compound type of node (Entity, AggregateRoot, etc)
+    repeated EntityNodeLabel labels = 15;
+    // Generation (gen) of the entity for patch versioning
+    uint32 generation = 16;
+    // tags for the entity
+    repeated uint32 tags = 17;
+    // components for the entity
+    repeated EntityComponent components = 18;
+    // Location of the entity (as hash crc of DF records guid)
+    uint32 location_id = 19;
+    // debug properties (DEBUG/non-release builds only)
+    map<string, string> debug = 20;
+    // (Optional) Version of the entity if applicable
+    uint32 version = 21;
+    reserved "status";
+    reserved 22;
+    // entity creation time in ms
+    uint64 created_at = 23;
+    // entity last modified time in ms
+    uint64 updated_at = 24;
+
+    string unstowed_from_inventory_id = 25;
+
+    reserved "stow_ctx";
+    reserved 26;
+
+    // Item type enum (from Entity Class)
+    int32 item_type_enum = 27;
+    // Item subtype enum (from Entity Class)
+    int32 item_sub_type_enum = 28;
+
+    // ownership status imprint
+    sc.external.common.game.v1.OwnershipStatus ownership_status = 29;
+    // ownership timestamp imprint
+    google.protobuf.Timestamp ownership_timestamp = 30;
+}
+
+enum InventoryType {
+    INVENTORY_TYPE_UNSPECIFIED = 0;
+    // An infinite bag of holding inventory
+    INVENTORY_TYPE_INFINITE = 1;
+    // An inventory with a volumetric capacity
+    INVENTORY_TYPE_PHYSICAL = 2;
+}
+
+message PhysicalInventoryConfiguration {
+    int32 capacity = 1;
+    int32 occupancy = 2;
+}
+
+message InventoryConfiguration {
+    oneof configuration {
+        PhysicalInventoryConfiguration physical = 9;
+    }
+}
+
+message InventoryNodeProperties {
+    reserved "geid";
+    reserved 1;
+    reserved "time_created";
+    reserved 2;
+    reserved "time_modified";
+    reserved 3;
+    // The type of inventory (infinite, physical)
+    InventoryType inventory_type = 4;
+    // Optional legal owner of the inventory
+    uint64 owner_id = 5;
+    // Shard id where this entity is unstowed
+    string unstowed_in = 6;
+    // Generation (gen) for patch versioning
+    uint32 generation = 7;
+    // Wether this inventory is shared bewtween actors
+    bool shared = 8;
+    // Type specific inventory configuration
+    InventoryConfiguration configuration = 9;
+    // (Optional) inventory name
+    string name = 10;
+    // debug properties (DEBUG/non-release builds only)
+    map<string, string> debug = 11;
+    // unique identifier for the inventory
+    string id = 12;
+    // the kind of inventory for the reference
+    string context = 13;
+    // identifier of the target of the reference
+    uint64 subject_id = 14;
+    // Inventory creation timestamp in ms
+    uint64 created_at = 15;
+    // Inventory last modified timestamp in ms
+    uint64 updated_at = 16;
+    reserved "status";
+    reserved 22;
+}
+
+message PhysicalInventoryEdgeConfiguration {
+    // Occupancy (size) of this item in the inventory
+    uint32 occupancy = 2;
+}
+
+message EntityEdgeProperties {
+    AttachmentType attachment_type = 1;
+    uint32 attachment_port_crc = 2;
+    // Lexorank string for the item ordered in the inventory.
+    string rank = 3;
+    oneof inventory {
+        PhysicalInventoryEdgeConfiguration physical = 4;
+    }
+    string context = 5;
+    uint64 subject_id = 6;
+    uint32 version = 7;
+}
+
+/*
+  Node — a node in the graph. Can represent Entities, Players, Inventories, etc.
+*/
+message Node {
+    NodeProperties properties = 1;
+    NodeType type = 2;
+}
+
+message EntityEdgeVertex {
+    oneof id {
+        uint64 entity_id = 1;
+        string inventory_id  = 2;
+        string shard_id = 4;
+    }
+    NodeType type = 3;
+}
+
+/*
+    EntityEdge — an edge connecting nodes via a relationship type.
+*/
+message EntityEdge {
+    EntityEdgeType type = 1;
+    EntityEdgeVertex start = 2;
+    EntityEdgeVertex end = 3;
+    EntityEdgeProperties properties = 4;
+}
+
+/*
+    EntityGraph — a subgraph carrying an entity tree, ownership and inventory
+    information back to the game.
+*/
+message EntityGraph {
+    repeated Node nodes = 1;
+    repeated EntityEdge edges = 2;
+}
+
+/** Entity Snapshots **/
+
+message EntitySnapshot {
+    uint64 entity_id = 1;
+    // Serialized variables of the snapshot
+    repeated EntityVariable variables = 2;
+    uint32 version = 3;
+}
+
+message EntityVariable {
+    // CRC of the name of the variable
+    uint32 name_crc = 1;
+    uint32 type = 2;
+    // Bitmask flags (snapshot, network, persistent)
+    uint32 flags = 3;
+    // The serialized byte data of the variable
+    bytes snapshot = 4;
+}
+
+/* Query values */
+
+message Value {
+    oneof value_type {
+        ScalarValue scalar_value = 1;
+        ArrayValue array_value = 2;
+        StructValue map_value = 3;
+    }
+}
+
+message ScalarValue {
+    oneof scalar_type {
+        google.protobuf.NullValue null_value = 1;
+        string string_value = 2;
+        bool boolean_value = 3;
+        int32 integer_value = 4;
+        double double_value = 5;
+        int64 bigint_value = 6;
+        google.protobuf.Timestamp timestamp_value = 7;
+        bytes blob_value = 8;
+        uint32 unsigned_integer_value = 9;
+        uint64 unsigned_bigint_value = 10;
+    }
+}
+
+message ArrayValue {
+    repeated Value values = 1;
+}
+
+message StructValue {
+    map<string, Value> fields = 1;
+}
+
+message PersistentEntityProperties {
+    // only variables flagged as ENTITY_SNAPSHOT_VARIABLE_FLAGS_LTP_BACKED
+    repeated EntityVariable variables = 1;
+    repeated EntityComponent components = 2;
+    uint32 generation = 3;
+}
+
+/** Container Graph  **/
+
+enum ContainerNodeLabel {
+    CONTAINER_NODE_LABEL_UNSPECIFIED = 0;
+    CONTAINER_NODE_LABEL_CONTAINER = 1;
+    CONTAINER_NODE_LABEL_STAR_SYSTEM = 2;
+    CONTAINER_NODE_LABEL_HAS_PHYSICS_GRID = 3;
+    CONTAINER_NODE_LABEL_UNIVERSE_ROOT = 4;
+    CONTAINER_NODE_LABEL_LOCATION = 5;
+}
+
+message ContainerNode {
+    repeated ContainerNodeLabel labels = 1;
+    ContainerNodeProperties properties = 2;
+}
+
+message ContainerNodeProperties {
+    message Identifiers {
+        uint64 start_id = 1;
+        bool has_planet = 2;
+        uint32 unstreamable_count = 3;
+        uint32 streaming_immovable_count = 4;
+        uint32 streaming_movable_count = 5;
+    }
+
+    string guid = 1;
+    uint64 geid = 2;
+    uint32 socpak_content_hash = 3;
+    uint32 socpak_file_path_hash = 4;
+    Identifiers identifiers = 5;
+    uint32 generation = 6;
+    uint64 created_at = 23;
+    uint64 updated_at = 24;
+}
+
+enum ContainerEdgeType {
+    CONTAINER_EDGE_TYPE_UNSPECIFIED = 0;
+    CONTAINER_EDGE_TYPE_CONTAINED_IN = 1;
+}
+
+enum LabelOperator {
+    LABEL_OPERATOR_UNSPECIFIED = 0;
+    LABEL_OPERATOR_HAS_ANY = 1;
+    LABEL_OPERATOR_HAS_ALL = 2;
+    LABEL_OPERATOR_HAS_NONE = 3;
+}
+
+enum BitOperator {
+    BIT_OPERATOR_UNSPECIFIED = 0;
+    BIT_OPERATOR_AND = 1;
+    BIT_OPERATOR_OR = 2;
+    BIT_OPERATOR_NOT = 3;
+}
+
+message ContainerEdgeProperties {}
+
+message ContainerEdge {
+    ContainerEdgeType type = 1;
+    uint64 start = 2;
+    uint64 end = 3;
+    ContainerEdgeProperties properties = 4;
+}
+
+message ContainerGraph {
+    repeated ContainerNode nodes = 1;
+    repeated ContainerEdge edges = 2;
+}
+
+/*
+    MetaRecord — reverse lookup from hash/crc to a structured, human-readable
+    record. Mostly used for visual tools.
+*/
+message MetaRecord {
+    string kind = 1;
+    string key = 2;
+    string name = 3;
+    string type = 4;
+    string description = 5;
+    repeated MetaReference references = 6;
+    map<string, ScalarValue> dictionary = 7;
+    uint32 generation = 8;
+}
+
+message MetaReference {
+    string datacore_guid = 1;
+    string geid = 2;
+    string scurn = 3;
+}
+
+message EntityOwner {
+    message Owner {
+        double account_id = 1;
+        string player_id = 2;
+        string name = 3;
+        string nick_name = 4;
+        string display_name = 5;
+    }
+
+    string entity_id = 1;
+    Owner owner = 2;
+}
+
+message StarHash {
+    uint64 level0 = 1;
+    uint64 level1 = 2;
+}
+
+/*
+  EntityClass — abstraction of certain entity properties into a 'class'. The crc
+  matches an entity node's class_guid_crc and carries localised name, type and
+  subtype.
+*/
+message EntityClass {
+    EntityClassProperties properties = 1;
+}
+
+message EntityClassProperties {
+    // Unique entity class identifier
+    string guid = 1;
+    // Item class GUID crc - should match an entity's class_guid_crc
+    uint32 guid_hash_crc = 2;
+    // String name for the class
+    string class_name = 3;
+    // Item type
+    string item_type = 4;
+    // Item subtype
+    string item_sub_type = 5;
+    // localised name for entity
+    sc.external.common.types.v1.LocalizedString name = 6;
+    // localised description for entity
+    sc.external.common.types.v1.LocalizedString description = 7;
+    // tags for the entity class
+    repeated uint32 tags = 8;
+    uint32 generation = 9;
+    int32 item_type_enum = 10;
+    int32 item_sub_type_enum = 11;
+    repeated uint32 components = 12;
+}
+
+message Inventory {
+    InventoryNodeProperties properties = 1;
+}
+
+message EntityStowContext {
+    // geid of the entity
+    uint64 entity_id = 1;
+    // entitlement URN of the entity
+    string parent_urn = 2;
+    // owner id of the entity
+    uint64 owner_id = 3;
+    // Whether the entity is stowed
+    bool is_stowed = 4;
+
+    reserved "parent";
+    optional string shard_id = 5;
+    optional string inventory_id = 6;
+
+    uint32 class_guid_crc = 7;
+    // inventory id unstowed from
+    string unstowed_from_inventory_id = 8;
+}

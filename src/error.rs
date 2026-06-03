@@ -64,4 +64,10 @@ pub enum Error {
     /// A value couldn't be parsed/validated (endpoint URL, JWT header, …).
     #[error("invalid value: {0}")]
     Invalid(String),
+
+    /// `IdentityService.GetCurrentPlayer` returned no active character (or an
+    /// empty player JWT), so the player-sharded queries (`items`,
+    /// `entitlements`) can't run. Create/select a character in-game and retry.
+    #[error("no current player/character for this account")]
+    NoCurrentPlayer,
 }

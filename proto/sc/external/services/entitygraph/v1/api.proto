@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package sc.external.services.entitygraph.v1;
+
+// HAND-TRIMMED read-only subset of the reverse-engineered EntityGraphService
+// from 19h/space-reversing (scproto/sc/proto/.../entitygraph/v1/api.proto +
+// rpc_messages.proto).
+//
+// Upstream splits the request/response *bodies* into a large rpc_messages.proto
+// that imports the entity/container/inventory command protos, the network and
+// command common protos, and google/rpc. None of that is needed to *read* the
+// graph, so instead of vendoring all of it we inline just the read-path bodies
+// here and expose only the query RPCs. Message/field numbers and the gRPC
+// method paths match upstream, so the wire format is identical.
+
+import "sc/external/services/entitygraph/v1/types.proto";
+import "sc/external/services/entitygraph/v1/query.proto";
+import "sc/external/common/api/v1/pagination.proto";
+
+// ── Request/response bodies (from rpc_messages.proto) ────────────────────────
+
+message GetInventoriesRequestBody {
+    string owner_id = 1;
+}
+message GetInventoriesResponseBody {
+    repeated Node inventories = 1;
+}
+
+message EntityQueryRequestBody {
+    // Scope of this entity query (shard/global)
+    Scope scope = 1;
+    EntityGraphQuery query = 2;
+}
+message EntityQueryResponseBody {
+    sc.external.common.api.v1.PaginationInfo page_info = 1;
+    EntityGraph results = 2;
+    repeated EntitySnapshot snapshots = 3;
+    repeated EntityClass entity_classes = 4;
+}
+
+message InventoryQueryRequestBody {
+    InventoryQuery query = 1;
+}
+message InventoryQueryResponseBody {
+    sc.external.common.api.v1.PaginationInfo page_info = 1;
+    repeated Inventory results = 2;
+}
+
+message GetEntityStowContextsByGeidsRequestBody {
+    // geids to match
+    repeated uint64 geids = 1;
+    // ownerId to match (AND combined with geids)
+    uint64 owner_id = 2;
+    // optionally also filter by entity class crcs
+    repeated uint32 entity_class_crcs = 3;
+}
+message GetEntityStowContextsByGeidsResponseBody {
+    repeated EntityStowContext results = 1;
+}
+
+message GetEntityStowContextsByParentUrnsRequestBody {
+    // parentUrns to match
+    repeated string parent_urns = 1;
+    // ownerId to match (AND combined with parentUrns)
+    uint64 owner_id = 2;
+    // optionally also filter by entity class crcs
+    repeated uint32 entity_class_crcs = 3;
+}
+message GetEntityStowContextsByParentUrnsResponseBody {
+    repeated EntityStowContext results = 1;
+}
+
+// ── Outer request/response wrappers (each carries a `body`) ───────────────────
+
+message GetInventoriesRequest { GetInventoriesRequestBody body = 1; }
+message GetInventoriesResponse { GetInventoriesResponseBody body = 1; }
+
+message EntityQueryRequest { EntityQueryRequestBody body = 1; }
+message EntityQueryResponse { EntityQueryResponseBody body = 1; }
+
+message InventoryQueryRequest { InventoryQueryRequestBody body = 1; }
+message InventoryQueryResponse { InventoryQueryResponseBody body = 1; }
+
+message GetEntityStowContextsByGeidsRequest { GetEntityStowContextsByGeidsRequestBody body = 1; }
+message GetEntityStowContextsByGeidsResponse { GetEntityStowContextsByGeidsResponseBody body = 1; }
+
+message GetEntityStowContextsByParentUrnsRequest { GetEntityStowContextsByParentUrnsRequestBody body = 1; }
+message GetEntityStowContextsByParentUrnsResponse { GetEntityStowContextsByParentUrnsResponseBody body = 1; }
+
+// ── Service (read-only methods only) ─────────────────────────────────────────
+
+service EntityGraphService {
+    // Get the inventories owned by ownerId.
+    rpc GetInventories(GetInventoriesRequest) returns (GetInventoriesResponse);
+
+    // Query and retrieve entity sub-graphs. Limited to player-owned inventories.
+    // For GLOBAL scope, the query's inventory_id must be set.
+    rpc EntityQuery(EntityQueryRequest) returns (EntityQueryResponse);
+
+    // Query and retrieve inventories.
+    rpc InventoryQuery(InventoryQueryRequest) returns (InventoryQueryResponse);
+
+    // Get stow-context records (where an entity is stowed) by geids. Also
+    // filtered by the player URN in the gRPC metadata.
+    rpc GetEntityStowContextsByGeids(GetEntityStowContextsByGeidsRequest)
+        returns (GetEntityStowContextsByGeidsResponse);
+
+    // Get stow-context records by parent (entitlement) URNs.
+    rpc GetEntityStowContextsByParentUrns(GetEntityStowContextsByParentUrnsRequest)
+        returns (GetEntityStowContextsByParentUrnsResponse);
+}

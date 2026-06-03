@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package sc.external.services.identity.v1;
+
+// TRIMMED copy of the reverse-engineered proto from 19h/space-reversing
+// (scproto/sc/proto/.../identity/v1/api.proto). The google.api.http and
+// openapiv2 swagger annotations (and their imports) were removed — they only
+// drive the HTTP/JSON gateway. Method names, message numbers and types are
+// identical to upstream.
+
+import "sc/external/services/identity/v1/player.proto";
+
+message GetCurrentPlayerRequest {
+  // account_id is taken from call authentication.
+}
+
+message GetCurrentPlayerResponse {
+  // Current player associated with the caller's account.
+  Player player = 1;
+  // A (player-scoped) JWT for the current player.
+  string jwt = 2;
+}
+
+message PreallocatePlayerRequest {
+  // (Optional) Character name.
+  optional string name = 1;
+}
+
+message PreallocatePlayerResponse {
+  Player player = 1;
+}
+
+message GetPlayersNamesRequest {
+  // List of player geids to get the names for.
+  repeated uint64 player_geids = 1;
+}
+
+message GetPlayersNamesResponse {
+  message PlayerName {
+    uint64 geid = 1;
+    string name = 2;
+  }
+  repeated PlayerName names = 1;
+}
+
+service IdentityService {
+  // Preallocates a player GEID for the authenticated account before first login.
+  rpc PreallocatePlayer(PreallocatePlayerRequest) returns (PreallocatePlayerResponse);
+
+  // Get the currently active player for the authenticated account (and a
+  // player-scoped JWT for it).
+  rpc GetCurrentPlayer(GetCurrentPlayerRequest) returns (GetCurrentPlayerResponse);
+
+  // Get the names for a list of players.
+  rpc GetPlayersNames(GetPlayersNamesRequest) returns (GetPlayersNamesResponse);
+}

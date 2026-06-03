@@ -7,6 +7,16 @@ use std::error::Error;
 const PROTO_FILES: &[&str] = &[
     "proto/sc/external/services/blueprint_library/v1/types.proto",
     "proto/sc/external/services/blueprint_library/v1/api.proto",
+    "proto/sc/external/services/entitlement/v2/types.proto",
+    "proto/sc/external/services/entitlement/v2/api.proto",
+    "proto/sc/external/services/identity/v1/player.proto",
+    "proto/sc/external/services/identity/v1/api.proto",
+    "proto/sc/external/services/entitygraph/v1/types.proto",
+    "proto/sc/external/services/entitygraph/v1/query.proto",
+    "proto/sc/external/services/entitygraph/v1/api.proto",
+    "proto/sc/external/common/types/v1/localization.proto",
+    "proto/sc/external/common/types/v1/transforms.proto",
+    "proto/sc/external/common/game/v1/types.proto",
     "proto/sc/external/common/api/v1/pagination.proto",
     "proto/sc/external/common/api/v1/query.proto",
 ];

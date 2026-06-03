@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package sc.external.services.entitlement.v2;
+
+// TRIMMED copy of the reverse-engineered proto from 19h/space-reversing
+// (scproto/sc/proto/.../entitlement/v2/api.proto).
+//
+// Changes from the original (none affect the gRPC service path or wire format
+// of the methods we keep):
+//   - Removed the `google.api.http` and openapiv2 swagger annotations and their
+//     imports — they only drive the HTTP/JSON gateway and swagger generation.
+//   - Removed the `UpdateArenaCommanderLoadout` RPC. It is a mutation (out of
+//     scope for this read-only tool) and its request pulls in ItemPortLoadout
+//     and sc/external/common/command/v1 — neither of which any query needs.
+// Method names, message numbers, and the query types are identical to upstream.
+
+import "sc/external/services/entitlement/v2/types.proto";
+
+message QueryEntitlementsStreamRequest {
+    // (Optional) filter; if not set, all of this player's entitlements are returned.
+    optional EntitlementFilter filter = 1;
+}
+
+message QueryEntitlementsStreamResponse {
+    repeated Entitlement results = 1;
+}
+
+message QuerySnapshotsStreamRequest {
+    optional SnapshotFilter filter = 1;
+}
+
+message QuerySnapshotsStreamResponse {
+    repeated SnapshotRecord results = 1;
+}
+
+message QuerySnapshotsWithEntitlementsStreamRequest {
+    optional SnapshotFilter filter = 1;
+}
+
+message QuerySnapshotsWithEntitlementsStreamResponse {
+    repeated SnapshotWithEntitlement results = 1;
+}
+
+message QueryEntitlementsByItemTypeStreamRequest {
+    string item_type = 1;
+    optional string item_sub_type = 2;
+}
+
+message QueryEntitlementsByItemTypeStreamResponse {
+    repeated Entitlement results = 1;
+}
+
+message QueryEntitlementsBySourceTypeStreamRequest {
+    EntitlementSourceType source_type = 1;
+    repeated string entitlement_urns = 2;
+}
+
+message QueryEntitlementsBySourceTypeStreamResponse {
+    repeated Entitlement results = 1;
+}
+
+message QueryEntitlementsByEntityClassStreamRequest {
+    repeated string entity_class_guids = 1;
+    repeated EntitlementSourceType source_types = 2;
+}
+
+message QueryEntitlementsByEntityClassStreamResponse {
+    repeated Entitlement results = 1;
+}
+
+message QueryEntitlementsByEntityGeidsStreamRequest {
+    repeated uint64 entity_geids = 1;
+}
+
+message QueryEntitlementsByEntityGeidsStreamResponse {
+    repeated Entitlement results = 1;
+}
+
+service ExternalEntitlementService {
+    // Query a player's own entitlement records (identified by the bearer JWT in
+    // the gRPC metadata); sends a stream of entitlements. An empty/unset filter
+    // returns everything the player owns.
+    rpc QueryEntitlementsStream(QueryEntitlementsStreamRequest)
+        returns (stream QueryEntitlementsStreamResponse);
+
+    // Query a player's own snapshot (loadout) records.
+    rpc QuerySnapshotsStream(QuerySnapshotsStreamRequest)
+        returns (stream QuerySnapshotsStreamResponse);
+
+    // Query a player's own snapshot records including their entitlement.
+    rpc QuerySnapshotsWithEntitlementsStream(QuerySnapshotsWithEntitlementsStreamRequest)
+        returns (stream QuerySnapshotsWithEntitlementsStreamResponse);
+
+    rpc QueryEntitlementsByItemTypeStream(QueryEntitlementsByItemTypeStreamRequest)
+        returns (stream QueryEntitlementsByItemTypeStreamResponse);
+
+    rpc QueryEntitlementsBySourceTypeStream(QueryEntitlementsBySourceTypeStreamRequest)
+        returns (stream QueryEntitlementsBySourceTypeStreamResponse);
+
+    rpc QueryEntitlementsByEntityClassStream(QueryEntitlementsByEntityClassStreamRequest)
+        returns (stream QueryEntitlementsByEntityClassStreamResponse);
+
+    rpc QueryEntitlementsByEntityGeidsStream(QueryEntitlementsByEntityGeidsStreamRequest)
+        returns (stream QueryEntitlementsByEntityGeidsStreamResponse);
+}

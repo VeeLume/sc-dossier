@@ -1,6 +1,6 @@
 [package]
 name = "sc-dossier"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT"
@@ -25,6 +25,7 @@ reqwest = { version = "0.12", default-features = false, features = [
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
+tokio = { version = "1", features = ["sync"] }
 
 # Launcher-store decryption (AES-256-CBC + PBKDF2-HMAC-SHA512).
 aes = "0.8"

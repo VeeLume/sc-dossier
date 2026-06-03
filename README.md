@@ -2,7 +2,7 @@
 
 Read-only Rust client for Star Citizen account data from CIG's game-services
 gRPC backend, authenticated via the RSI launcher's stored session. Currently:
-owned blueprints.
+owned blueprints, the entitlement ledger, and stowed inventory items.
 
 Non-official client against CIG's backend — against their ToS. Read-only, own
 account, at your own risk.
@@ -15,6 +15,12 @@ account, at your own risk.
    `…/api/launcher/v3`. `games/release` returns the current `servicesEndpoint`.
 3. gRPC/TLS to that endpoint → `BlueprintLibraryService.QueryBlueprintEntries`,
    paginated.
+
+Blueprints read on the account JWT directly. The entitlement and entity-graph
+services are sharded by *character* geid and reject the account JWT, so
+`entitlements()` / `items()` / `inventories()` first swap it for a player-scoped
+JWT via `IdentityService.GetCurrentPlayer` (cached after the first call;
+`player_id()` exposes the geid once resolved).
 
 ## Usage
 
@@ -48,11 +54,19 @@ caller's responsibility.
 | `Dossier::from_launcher(user_agent)` | read store creds → mint → connect |
 | `Dossier::from_session(session, user_agent)` | connect with a minted session |
 | `Dossier::owned_blueprints()` | full owned set, auto-paginated |
+| `Dossier::entitlements()` | account-wide owned-item ledger (streamed) |
+| `Dossier::items()` | every stowed item, everywhere, tagged with `Location` |
+| `Dossier::inventories()` | inventory containers (incl. empty) + type/capacity |
+| `Dossier::player_id()` | current character geid, once resolved |
 | `Dossier::session()` | active endpoint / version / JWT |
 | `store::read_credentials()` | launcher-store decryption → `Credentials` |
 | `auth::{mint_session, Env, MintOptions, Session}` | mint flow |
 | `client::{connect, BearerAuth}` | tonic channel (caller supplies the user-agent) |
-| `Blueprint`, `Error`, `Result` | data + error types |
+| `Blueprint`, `Entitlement`, `Item`, `Inventory`, `Error`, `Result` | data + error types |
+
+All ids stay raw/wire-native (CRCs, GUIDs, geids); a holotable consumer resolves
+`class_crc` → item, `resource_id` → resource type, and `Context::Location/Hangar`
+CRCs → place names via its `by_crc` indices.
 
 ## Build
 

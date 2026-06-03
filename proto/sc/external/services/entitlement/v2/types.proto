@@ -1,0 +1,164 @@
+syntax = "proto3";
+
+package sc.external.services.entitlement.v2;
+
+// TRIMMED copy of the reverse-engineered proto from 19h/space-reversing
+// (scproto/sc/proto/.../entitlement/v2/types.proto).
+//
+// Changes from the original, all of which preserve field numbers and wire
+// format for the messages we DO keep (so decoding live responses is faithful):
+//   - Dropped `Entitlement.entity_configuration` (field 9) and its dependency
+//     tree (EntityConfiguration / EntityConfigurationParameters, which import
+//     sc/external/common/platform/v1). Unknown-to-us fields are simply skipped
+//     by prost on decode.
+//   - Dropped `Entitlement.persistent_properties` (field 18). The original's
+//     own comment says it is only set when passed to EntityCreator and query
+//     responses return null — so a read client never sees it. This removes the
+//     heavy sc/external/services/entitygraph/v1 import.
+//   - Dropped ItemPortLoadout (only used by the AC-loadout mutation, which we
+//     don't vendor) and the LTP/reconcile/fulfillment bookkeeping enums.
+// The remaining import is just the well-known Timestamp.
+
+import "google/protobuf/timestamp.proto";
+
+// Status of the entitlement.
+enum EntitlementStatus {
+    ENTITLEMENT_STATUS_UNSPECIFIED = 0;
+    // entitlement is packaged
+    ENTITLEMENT_STATUS_PACKAGED = 1;
+    // entitlement is undelivered
+    ENTITLEMENT_STATUS_UNDELIVERED = 2;
+    // entitlement is delivered
+    ENTITLEMENT_STATUS_DELIVERED = 3;
+    // entitlement is revoked
+    ENTITLEMENT_STATUS_REVOKED = 4;
+    // delivery failed due to a non-retriable error on this patch
+    ENTITLEMENT_STATUS_FAILED = 5;
+}
+
+// Source of the entitlement — the discriminator between "web hangar" (PLATFORM)
+// and items acquired/rented in-game.
+enum EntitlementSourceType {
+    ENTITLEMENT_SOURCE_TYPE_UNSPECIFIED = 0;
+    // item comes from platform (e.g. webstore)
+    ENTITLEMENT_SOURCE_TYPE_PLATFORM = 1;
+    // item comes from ingame; entitlement is persistent
+    ENTITLEMENT_SOURCE_TYPE_INGAME_PERSISTENT = 2;
+    // item comes from ingame; entitlement is not persistent
+    ENTITLEMENT_SOURCE_TYPE_INGAME_NONPERSISTENT = 3;
+    // item comes from rental
+    ENTITLEMENT_SOURCE_TYPE_RENTAL = 4;
+    // item comes from arena commander
+    ENTITLEMENT_SOURCE_TYPE_ARENA_COMMANDER = 5;
+}
+
+// Additional information about the entitlement that does not affect how the
+// entitlement is handled from the service perspective.
+message EntitlementMetadata {
+    // Name of the entitlement
+    string name = 1;
+    // Stack size
+    int32 stack_size = 2;
+    // SKU of the source of the entitlement
+    string source_sku = 3;
+    // Whether the source of this entitlement was funded with real currency.
+    bool real_money = 4;
+}
+
+message Entitlement {
+    // Entitlement URN
+    string urn = 1;
+    // Source URN of the entitlement
+    string source_urn = 2;
+    // Source type of the entitlement
+    EntitlementSourceType source_type = 3;
+    // Status of the entitlement
+    EntitlementStatus status = 4;
+    // Entity Class GUID to entitle
+    string entity_class_guid = 5;
+    // Player Id of the owner, required as it's the sharding key
+    uint64 player_id = 6;
+    // Entity GEID (set once the entitlement is instantiated into the world)
+    optional uint64 entity_geid = 10;
+    // claim timestamp
+    optional google.protobuf.Timestamp claim_timestamp = 11;
+    // claim version
+    optional string claim_version = 12;
+    // Rental expiry
+    optional google.protobuf.Timestamp rental_expiry = 13;
+
+    google.protobuf.Timestamp created_at = 15;
+    google.protobuf.Timestamp modified_at = 16;
+
+    EntitlementMetadata metadata = 17;
+
+    reserved 7;
+    reserved "item_type";
+    reserved 8;
+    reserved "item_sub_type";
+    // 9 = entity_configuration, 14 = arena_commander_loadout, 18 =
+    // persistent_properties in the original; dropped here (see file header).
+    reserved 9, 14, 18;
+}
+
+enum SnapshotSlotId {
+    SNAPSHOT_SLOT_ID_UNSPECIFIED = 0;
+    SNAPSHOT_SLOT_ID_DEFAULT = 1;
+    SNAPSHOT_SLOT_ID_CUSTOMIZED = 2;
+}
+
+// Snapshot record for each attachment of a root entitlement. All snapshot
+// records for the same root entity and snapshot type define the root's loadout.
+message SnapshotRecord {
+    // Snapshot id
+    string id = 1;
+    // Player Id of the owner, required as it's the sharding key
+    uint64 player_id = 2;
+    // Snapshot root URN
+    string root_urn = 3;
+    // Item URN — can be an entitlement URN or an entity class URN
+    string item_urn = 4;
+    // slot id
+    SnapshotSlotId slot_id = 5;
+    // Attach path (array of item port names, starting from the root)
+    repeated string attach_path = 6;
+}
+
+message EntitlementFilter {
+    // (Optional) filter by item type
+    optional string item_type = 1;
+    // (Optional) filter by item subtype
+    optional string item_sub_type = 2;
+    // (Optional) filter by entity class GUID
+    repeated string entity_class_guid = 3;
+    // (Optional) filter by entitlement URN
+    repeated string entitlement_urn = 4;
+    // (Optional) filter by source type
+    repeated EntitlementSourceType source_type = 5;
+    // (Optional) filter by entity GEID
+    repeated uint64 entity_geid = 6;
+
+    message Exclude {
+        // (Optional) filter by item type
+        repeated string item_type = 1;
+        // (Optional) filter by item subtype
+        repeated string item_sub_type = 2;
+    }
+
+    // (Optional) exclude results whose item_type/item_sub_type matches any of these.
+    optional Exclude exclude = 7;
+    // (Optional) if true, revoked entitlements are included in the results.
+    // By default revoked entitlements are excluded from all query results.
+    optional bool include_revoked = 8;
+}
+
+message SnapshotFilter {
+    // At least one of these fields must be set
+    repeated string entitlement_urn = 1;
+    repeated SnapshotSlotId snapshot_slot_id = 2;
+}
+
+message SnapshotWithEntitlement {
+    SnapshotRecord snapshot = 1;
+    Entitlement entitlement = 2;
+}
