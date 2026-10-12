@@ -27,14 +27,20 @@ pub mod client;
 pub mod entitlements;
 pub mod error;
 pub mod items;
+pub mod loadouts;
 pub mod missions;
+pub mod stash;
 pub mod store;
 
 pub use blueprints::{Blueprint, BlueprintProcessType, BlueprintSource};
 pub use entitlements::{Entitlement, EntitlementSource, EntitlementStatus};
 pub use error::{Error, Result};
 pub use items::{Context, Inventory, InventoryType, Item, Location, Resource};
+pub use loadouts::{Loadout, LoadoutEntry, LoadoutItem, LoadoutSlot};
 pub use missions::{Mission, MissionObjective, ObjectiveKind, ObjectiveState};
+pub use stash::{
+    port_crc, Crafted, Ingredient, IngredientKind, ItemNode, Ownership, Stash, Stashes,
+};
 
 use tokio::sync::OnceCell;
 use tonic::transport::Channel;
@@ -120,5 +126,23 @@ impl Dossier {
     pub async fn active_missions(&self) -> Result<Vec<Mission>> {
         let player = self.player().await?;
         missions::query(&self.channel, &player.jwt, player.geid).await
+    }
+
+    /// Every inventory as item trees (attachments, contents, ownership, crafting).
+    pub async fn stashes(&self) -> Result<Stashes> {
+        let player = self.player().await?;
+        stash::all(&self.channel, &player.jwt, player.geid).await
+    }
+
+    /// One inventory as item trees.
+    pub async fn stash(&self, location: &Location) -> Result<Stash> {
+        let player = self.player().await?;
+        stash::one(&self.channel, &player.jwt, location).await
+    }
+
+    /// Stock and saved loadouts of every owned item.
+    pub async fn loadouts(&self) -> Result<Vec<Loadout>> {
+        let player = self.player().await?;
+        loadouts::query(&self.channel, &player.jwt).await
     }
 }

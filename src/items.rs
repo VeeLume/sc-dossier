@@ -45,7 +45,7 @@ pub enum Context {
 impl Context {
     /// Classify an inventory node's `context` string. `"Container"` takes the
     /// ship geid from `owner_id`, not `subject_id`.
-    fn from_inventory(context: &str, subject_id: u64, owner_id: u64) -> Self {
+    pub(crate) fn from_inventory(context: &str, subject_id: u64, owner_id: u64) -> Self {
         match context {
             "PlayerInventory" => Self::Player,
             "Entitlement" => Self::Entitlement,
@@ -192,7 +192,7 @@ pub(crate) async fn inventories(channel: &Channel, jwt: &str, geid: u64) -> Resu
 
 /// Fetch the player's inventory nodes via `GetInventories`, keeping only the
 /// inventory-typed nodes.
-async fn get_inventories(
+pub(crate) async fn get_inventories(
     client: &mut EntityGraphServiceClient<
         tonic::service::interceptor::InterceptedService<Channel, BearerAuth>,
     >,
@@ -338,7 +338,7 @@ fn item_from_proto(
 /// Decode the material/resource descriptor from a snapshot's variables. Layout:
 /// `[0]=1` (version) | `[1..5]` u32 LE resource_id | `[5..7]` u16 LE quality |
 /// `[7..11]` u32 LE microSCU. Absent or `version != 1` ⇒ `None`.
-fn decode_resource(snapshot: &EntitySnapshot) -> Option<Resource> {
+pub(crate) fn decode_resource(snapshot: &EntitySnapshot) -> Option<Resource> {
     let bytes = &snapshot
         .variables
         .iter()
