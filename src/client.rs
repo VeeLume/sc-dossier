@@ -44,7 +44,9 @@ impl BearerAuth {
 
 impl Interceptor for BearerAuth {
     fn call(&mut self, mut request: Request<()>) -> std::result::Result<Request<()>, Status> {
-        request.metadata_mut().insert("authorization", self.header.clone());
+        request
+            .metadata_mut()
+            .insert("authorization", self.header.clone());
         Ok(request)
     }
 }

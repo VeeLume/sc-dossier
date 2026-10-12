@@ -1,12 +1,4 @@
-//! Read credentials from the RSI launcher's `launcher store.json`
-//! (electron-store: AES-256-CBC + PBKDF2-HMAC-SHA512, key read at runtime from
-//! the launcher's `app.asar`).
-//!
-//! Surfaced fields:
-//! - `session.value` → `X-Rsi-Token` (platform session; may be expired)
-//! - `device.value`  → `X-Rsi-Device` (device token)
-//! - `library.defaults[SC]` → default channel + platform id
-//! - `application.version`  → launcher version
+//! Read [`Credentials`] from the RSI launcher's local store.
 
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -62,7 +54,12 @@ pub fn read_credentials_from(store_path: &Path, asar_path: &Path) -> Result<Cred
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             return Err(Error::StoreNotFound(store_path.to_path_buf()))
         }
-        Err(e) => return Err(Error::Store(format!("reading {}: {e}", store_path.display()))),
+        Err(e) => {
+            return Err(Error::Store(format!(
+                "reading {}: {e}",
+                store_path.display()
+            )))
+        }
     };
     let key_b64 = extract_encryption_key(asar_path)?;
     let plaintext = decrypt_store(&store_bytes, &key_b64)?;
@@ -77,18 +74,25 @@ fn parse_credentials(v: &Value) -> Result<Credentials> {
         .and_then(Value::as_str)
         .filter(|s| !s.is_empty())
         .map(str::to_string)
-        .ok_or(Error::MissingCredential { what: "session token" })?;
+        .ok_or(Error::MissingCredential {
+            what: "session token",
+        })?;
     let device_token = v
         .pointer("/device/value")
         .and_then(Value::as_str)
         .filter(|s| !s.is_empty())
         .map(str::to_string)
-        .ok_or(Error::MissingCredential { what: "device token" })?;
+        .ok_or(Error::MissingCredential {
+            what: "device token",
+        })?;
 
     let default = v
         .pointer("/library/defaults")
         .and_then(Value::as_array)
-        .and_then(|arr| arr.iter().find(|d| d.get("gameId").and_then(Value::as_str) == Some("SC")));
+        .and_then(|arr| {
+            arr.iter()
+                .find(|d| d.get("gameId").and_then(Value::as_str) == Some("SC"))
+        });
 
     Ok(Credentials {
         session_token,
@@ -172,7 +176,9 @@ fn extract_encryption_key(asar_path: &Path) -> Result<Vec<u8>> {
 
 fn decrypt_store(store_bytes: &[u8], key_b64: &[u8]) -> Result<Vec<u8>> {
     if store_bytes.len() < 17 || store_bytes[16] != b':' {
-        return Err(Error::Store("store file does not start with `[16-byte IV] :`".into()));
+        return Err(Error::Store(
+            "store file does not start with `[16-byte IV] :`".into(),
+        ));
     }
     let iv = &store_bytes[..16];
     let ct = &store_bytes[17..];
@@ -217,7 +223,9 @@ mod tests {
         let v = json!({ "device": { "value": "dev" } });
         assert!(matches!(
             parse_credentials(&v),
-            Err(Error::MissingCredential { what: "session token" })
+            Err(Error::MissingCredential {
+                what: "session token"
+            })
         ));
     }
 }

@@ -134,7 +134,11 @@ pub struct Inventory {
 
 impl Inventory {
     fn from_proto(p: &InventoryNodeProperties) -> Self {
-        let (capacity, occupancy) = match p.configuration.as_ref().and_then(|c| c.configuration.as_ref()) {
+        let (capacity, occupancy) = match p
+            .configuration
+            .as_ref()
+            .and_then(|c| c.configuration.as_ref())
+        {
             Some(inventory_configuration::Configuration::Physical(phys)) => {
                 (Some(phys.capacity), Some(phys.occupancy))
             }
@@ -195,9 +199,16 @@ async fn get_inventories(
     geid: u64,
 ) -> Result<Vec<InventoryNodeProperties>> {
     let request = GetInventoriesRequest {
-        body: Some(GetInventoriesRequestBody { owner_id: geid.to_string() }),
+        body: Some(GetInventoriesRequestBody {
+            owner_id: geid.to_string(),
+        }),
     };
-    let body = client.get_inventories(request).await?.into_inner().body.unwrap_or_default();
+    let body = client
+        .get_inventories(request)
+        .await?
+        .into_inner()
+        .body
+        .unwrap_or_default();
 
     Ok(body
         .inventories
@@ -223,7 +234,12 @@ async fn collect_items(
 
     loop {
         let request = entity_query_request(&location.inventory_id, after.clone());
-        let body = client.entity_query(request).await?.into_inner().body.unwrap_or_default();
+        let body = client
+            .entity_query(request)
+            .await?
+            .into_inner()
+            .body
+            .unwrap_or_default();
 
         // Resource descriptors live in the per-page snapshots, keyed by entity id.
         let resources: HashMap<u64, Resource> = body
@@ -240,7 +256,11 @@ async fn collect_items(
                     continue;
                 };
                 if seen.insert(e.geid) {
-                    out.push(item_from_proto(&e, location, resources.get(&e.geid).copied()));
+                    out.push(item_from_proto(
+                        &e,
+                        location,
+                        resources.get(&e.geid).copied(),
+                    ));
                 }
             }
         }
@@ -262,7 +282,10 @@ async fn collect_items(
 fn entity_query_request(inventory_id: &str, after: String) -> EntityQueryRequest {
     EntityQueryRequest {
         body: Some(EntityQueryRequestBody {
-            scope: Some(Scope { r#type: ScopeType::Global as i32, shard_id: String::new() }),
+            scope: Some(Scope {
+                r#type: ScopeType::Global as i32,
+                shard_id: String::new(),
+            }),
             query: Some(EntityGraphQuery {
                 filter: Some(EntityFilter {
                     filter_type: Some(entity_filter::FilterType::EdgeFilter(EdgeFilter {
@@ -274,7 +297,10 @@ fn entity_query_request(inventory_id: &str, after: String) -> EntityQueryRequest
                         }],
                     })),
                 }),
-                pagination: Some(PaginationArguments { first: PAGE_SIZE, after }),
+                pagination: Some(PaginationArguments {
+                    first: PAGE_SIZE,
+                    after,
+                }),
                 projection: Some(EntityProjection {
                     // Must be present or validation fails; disabled = no tree walk.
                     tree: Some(EntityTreeProjection::default()),
@@ -293,7 +319,11 @@ fn entity_query_request(inventory_id: &str, after: String) -> EntityQueryRequest
     }
 }
 
-fn item_from_proto(e: &EntityNodeProperties, location: &Location, resource: Option<Resource>) -> Item {
+fn item_from_proto(
+    e: &EntityNodeProperties,
+    location: &Location,
+    resource: Option<Resource>,
+) -> Item {
     Item {
         geid: e.geid,
         class_crc: e.class_guid_crc,
@@ -323,7 +353,11 @@ fn decode_resource(snapshot: &EntitySnapshot) -> Option<Resource> {
     let quality = u16::from_le_bytes([bytes[5], bytes[6]]);
     let micro_scu = u32::from_le_bytes([bytes[7], bytes[8], bytes[9], bytes[10]]);
 
-    Some(Resource { resource_id, quality, scu: micro_scu as f64 / 1_000_000.0 })
+    Some(Resource {
+        resource_id,
+        quality,
+        scu: micro_scu as f64 / 1_000_000.0,
+    })
 }
 
 #[cfg(test)]
@@ -369,18 +403,34 @@ mod tests {
 
     #[test]
     fn decode_resource_absent_variable() {
-        let snapshot = EntitySnapshot { entity_id: 1, variables: vec![], version: 0 };
+        let snapshot = EntitySnapshot {
+            entity_id: 1,
+            variables: vec![],
+            version: 0,
+        };
         assert!(decode_resource(&snapshot).is_none());
     }
 
     #[test]
     fn context_classifies_known_kinds() {
-        assert_eq!(Context::from_inventory("PlayerInventory", 0, 0), Context::Player);
-        assert_eq!(Context::from_inventory("Entitlement", 0, 0), Context::Entitlement);
-        assert_eq!(Context::from_inventory("Location", 42, 0), Context::Location(42));
+        assert_eq!(
+            Context::from_inventory("PlayerInventory", 0, 0),
+            Context::Player
+        );
+        assert_eq!(
+            Context::from_inventory("Entitlement", 0, 0),
+            Context::Entitlement
+        );
+        assert_eq!(
+            Context::from_inventory("Location", 42, 0),
+            Context::Location(42)
+        );
         assert_eq!(Context::from_inventory("Hangar", 7, 0), Context::Hangar(7));
         // Container uses owner_id (ship geid), not subject_id.
-        assert_eq!(Context::from_inventory("Container", 1, 99), Context::Container(99));
+        assert_eq!(
+            Context::from_inventory("Container", 1, 99),
+            Context::Container(99)
+        );
         assert_eq!(
             Context::from_inventory("Weird", 0, 0),
             Context::Other("Weird".to_string())

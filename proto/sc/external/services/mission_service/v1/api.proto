@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package sc.external.services.mission_service.v1;
+
+import "sc/external/common/mission/v1/missions.proto";
+
+// Trimmed to the read-only RPCs. The upstream proto (19h/space-reversing) also
+// has JoinMission / LeaveMission / ShareMission / CheckMissionSharingEligibility,
+// but those pull in command/push/google.rpc deps we don't need just to read the
+// player's accepted missions.
+service MissionService {
+  rpc QueryActiveMissions (QueryActiveMissionsRequest) returns (QueryActiveMissionsResponse) {}
+  rpc QueryMissions (QueryMissionsRequest) returns (QueryMissionsResponse) {}
+  rpc QueryMissionObjectives (QueryMissionObjectivesRequest) returns (QueryMissionObjectivesResponse) {}
+  rpc QueryMissionPhases (QueryMissionPhasesRequest) returns (QueryMissionPhasesResponse) {}
+}
+
+message QueryActiveMissionsRequest {
+  message Body {
+    string urn = 1;
+  }
+  repeated Body queries = 1;
+}
+
+message QueryActiveMissionsResponse {
+  message Body {
+    string mission_id = 1;
+  }
+  repeated Body mission_ids = 1;
+}
+
+message QueryMissionsRequest {
+  message Body {
+    string mission_id = 1;
+  }
+  repeated Body queries = 1;
+}
+
+message QueryMissionsResponse {
+  repeated .sc.external.common.mission.v1.ActiveMissionInfo missions = 1;
+}
+
+message QueryMissionObjectivesRequest {
+  message Body {
+    string mission_id = 1;
+    repeated string mission_objective_ids = 2;
+  }
+  repeated Body queries = 1;
+}
+
+message QueryMissionObjectivesResponse {
+  repeated .sc.external.common.mission.v1.MissionObjective objectives = 1;
+}
+
+message QueryMissionPhasesRequest {
+  message Body {
+    string mission_id = 1;
+    repeated string mission_phase_ids = 2;
+  }
+  repeated Body queries = 1;
+}
+
+message QueryMissionPhasesResponse {
+  repeated .sc.external.common.mission.v1.MissionPhase phases = 1;
+}

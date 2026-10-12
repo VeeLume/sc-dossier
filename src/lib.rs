@@ -9,6 +9,9 @@
 //! # Ok(()) }
 //! ```
 //!
+//! All ids stay wire-native (GUIDs, CRCs, geids); naming them is the caller's
+//! job.
+//!
 //! Using a non-official client against CIG's backend is against their Terms of
 //! Service. This crate is read-only; use on your own account at your own risk.
 
@@ -24,12 +27,14 @@ pub mod client;
 pub mod entitlements;
 pub mod error;
 pub mod items;
+pub mod missions;
 pub mod store;
 
 pub use blueprints::{Blueprint, BlueprintProcessType, BlueprintSource};
 pub use entitlements::{Entitlement, EntitlementSource, EntitlementStatus};
 pub use error::{Error, Result};
 pub use items::{Context, Inventory, InventoryType, Item, Location, Resource};
+pub use missions::{Mission, MissionObjective, ObjectiveKind, ObjectiveState};
 
 use tokio::sync::OnceCell;
 use tonic::transport::Channel;
@@ -57,7 +62,11 @@ impl Dossier {
     /// Connect using an already-minted [`auth::Session`].
     pub async fn from_session(session: auth::Session, user_agent: &str) -> Result<Self> {
         let channel = client::connect(&session.services_endpoint, user_agent).await?;
-        Ok(Self { channel, session, player: OnceCell::new() })
+        Ok(Self {
+            channel,
+            session,
+            player: OnceCell::new(),
+        })
     }
 
     /// The active session.
@@ -103,5 +112,13 @@ impl Dossier {
     pub async fn inventories(&self) -> Result<Vec<Inventory>> {
         let player = self.player().await?;
         items::inventories(&self.channel, &player.jwt, player.geid).await
+    }
+
+    /// Fetch the player's accepted missions (contracts) with their objectives
+    /// and location CRCs. Location CRCs are wire-native and don't resolve via the
+    /// item catalog — name them at the call site (see [`missions`]).
+    pub async fn active_missions(&self) -> Result<Vec<Mission>> {
+        let player = self.player().await?;
+        missions::query(&self.channel, &player.jwt, player.geid).await
     }
 }

@@ -19,6 +19,11 @@ const PROTO_FILES: &[&str] = &[
     "proto/sc/external/common/game/v1/types.proto",
     "proto/sc/external/common/api/v1/pagination.proto",
     "proto/sc/external/common/api/v1/query.proto",
+    // Mission service (accepted missions/contracts) + its common message types.
+    "proto/sc/external/common/mission/v1/types.proto",
+    "proto/sc/external/common/mission/v1/locations.proto",
+    "proto/sc/external/common/mission/v1/missions.proto",
+    "proto/sc/external/services/mission_service/v1/api.proto",
 ];
 
 const INCLUDE_DIRS: &[&str] = &["proto"];

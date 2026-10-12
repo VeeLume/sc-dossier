@@ -1,1 +1,4 @@
 /target
+
+# Claude Code maintainer-private memory (absolute cross-repo paths) — never commit
+CLAUDE.local.md

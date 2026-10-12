@@ -122,7 +122,10 @@ pub(crate) async fn query(channel: &Channel, jwt: &str) -> Result<Vec<Entitlemen
 
     // Empty/unset filter → everything the player owns.
     let request = QueryEntitlementsStreamRequest { filter: None };
-    let mut stream = client.query_entitlements_stream(request).await?.into_inner();
+    let mut stream = client
+        .query_entitlements_stream(request)
+        .await?
+        .into_inner();
 
     let mut out = Vec::new();
     while let Some(response) = stream.message().await? {

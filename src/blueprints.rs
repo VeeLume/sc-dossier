@@ -105,7 +105,11 @@ impl Blueprint {
             remaining_uses: e.remaining_uses,
             source: BlueprintSource::from_i32(e.source),
             process_type: BlueprintProcessType::from_i32(e.process_type),
-            last_used_at: e.last_used_at.as_ref().map(|t| t.seconds).filter(|s| *s != 0),
+            last_used_at: e
+                .last_used_at
+                .as_ref()
+                .map(|t| t.seconds)
+                .filter(|s| *s != 0),
         }
     }
 }
@@ -125,13 +129,20 @@ pub(crate) async fn owned(channel: &Channel, jwt: &str) -> Result<Vec<Blueprint>
         let request = QueryBlueprintEntriesRequest {
             query: Some(Query {
                 filter: None,
-                pagination: Some(PaginationArguments { first: PAGE_SIZE, after: after.clone() }),
+                pagination: Some(PaginationArguments {
+                    first: PAGE_SIZE,
+                    after: after.clone(),
+                }),
                 sort: None,
             }),
         };
 
         let response = client.query_blueprint_entries(request).await?.into_inner();
-        extend_distinct(&mut out, &mut seen, response.results.iter().map(Blueprint::from_proto));
+        extend_distinct(
+            &mut out,
+            &mut seen,
+            response.results.iter().map(Blueprint::from_proto),
+        );
 
         match response.page_info {
             Some(info) if info.has_next_page && !info.end_cursor.is_empty() => {
@@ -185,7 +196,11 @@ mod tests {
         extend_distinct(&mut out, &mut seen, [bp("b"), bp("c"), bp("d")]);
 
         let ids: Vec<&str> = out.iter().map(|b| b.blueprint_id.as_str()).collect();
-        assert_eq!(ids, ["a", "b", "c", "d"], "first occurrence wins, order preserved");
+        assert_eq!(
+            ids,
+            ["a", "b", "c", "d"],
+            "first occurrence wins, order preserved"
+        );
     }
 
     #[test]

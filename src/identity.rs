@@ -25,7 +25,10 @@ pub(crate) async fn current_player(channel: &Channel, account_jwt: &str) -> Resu
     let auth = BearerAuth::new(account_jwt)?;
     let mut client = IdentityServiceClient::with_interceptor(channel.clone(), auth);
 
-    let response = client.get_current_player(GetCurrentPlayerRequest {}).await?.into_inner();
+    let response = client
+        .get_current_player(GetCurrentPlayerRequest {})
+        .await?
+        .into_inner();
 
     let geid = response.player.map(|p| p.geid).filter(|g| *g != 0);
     match (geid, response.jwt) {

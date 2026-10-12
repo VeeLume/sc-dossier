@@ -26,6 +26,11 @@ pub(crate) mod sc {
                     tonic::include_proto!("sc.external.services.entitygraph.v1");
                 }
             }
+            pub(crate) mod mission_service {
+                pub(crate) mod v1 {
+                    tonic::include_proto!("sc.external.services.mission_service.v1");
+                }
+            }
         }
         pub(crate) mod common {
             pub(crate) mod api {
@@ -43,12 +48,19 @@ pub(crate) mod sc {
                     tonic::include_proto!("sc.external.common.game.v1");
                 }
             }
+            pub(crate) mod mission {
+                pub(crate) mod v1 {
+                    tonic::include_proto!("sc.external.common.mission.v1");
+                }
+            }
         }
     }
 }
 
 pub(crate) use sc::external::common::api::v1 as common_api;
+pub(crate) use sc::external::common::mission::v1 as mission;
 pub(crate) use sc::external::services::blueprint_library::v1 as blueprint_library;
 pub(crate) use sc::external::services::entitlement::v2 as entitlement;
 pub(crate) use sc::external::services::entitygraph::v1 as entitygraph;
 pub(crate) use sc::external::services::identity::v1 as identity;
+pub(crate) use sc::external::services::mission_service::v1 as mission_service;

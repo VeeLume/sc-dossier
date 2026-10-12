@@ -1,11 +1,4 @@
-//! Mint a game-services JWT by replaying the launcher flow:
-//!
-//!   1. `POST games/claims`  `{}`                          → opaque `claims`
-//!   2. `POST games/release` `{claims, gameId, channelId}` → `servicesEndpoint`, version
-//!   3. `POST games/token`   `{claims, gameId}`            → game JWT
-//!
-//! All three send `X-Rsi-Token` + `X-Rsi-Device` as headers. Envelope is
-//! `{ success, data, code }`; `success != 1` → [`Error::Mint`].
+//! Mint a game-services [`Session`] from launcher [`Credentials`].
 
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -63,7 +56,10 @@ impl MintOptions {
         Self {
             env: Env::from_platform_id(creds.platform_id.as_deref()),
             game: "SC".into(),
-            channel: creds.default_channel.clone().unwrap_or_else(|| "LIVE".into()),
+            channel: creds
+                .default_channel
+                .clone()
+                .unwrap_or_else(|| "LIVE".into()),
             user_agent: format!(
                 "RSI Launcher/{}",
                 creds.launcher_version.as_deref().unwrap_or("2.13.3")
@@ -124,7 +120,11 @@ async fn call(
 
     let env: Envelope = resp.json().await?;
     if env.success != 1 {
-        return Err(Error::Mint { step, success: env.success, code: env.code });
+        return Err(Error::Mint {
+            step,
+            success: env.success,
+            code: env.code,
+        });
     }
     Ok(env.data)
 }
@@ -150,7 +150,10 @@ pub async fn mint_session(creds: &Credentials, opts: &MintOptions) -> Result<Ses
         .filter(|s| !s.is_empty())
         .map(str::to_string)
         .ok_or_else(|| Error::Invalid("games/release returned no servicesEndpoint".into()))?;
-    let version_label = release.get("versionLabel").and_then(Value::as_str).map(str::to_string);
+    let version_label = release
+        .get("versionLabel")
+        .and_then(Value::as_str)
+        .map(str::to_string);
 
     let token_data = call(
         &client,
@@ -167,5 +170,9 @@ pub async fn mint_session(creds: &Credentials, opts: &MintOptions) -> Result<Ses
         .map(str::to_string)
         .ok_or_else(|| Error::Invalid("games/token returned no token".into()))?;
 
-    Ok(Session { jwt, services_endpoint, version_label })
+    Ok(Session {
+        jwt,
+        services_endpoint,
+        version_label,
+    })
 }
