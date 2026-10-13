@@ -1,9 +1,10 @@
 # sc-dossier
 
 Read-only Rust client for Star Citizen account data from CIG's game-services
-gRPC backend, authenticated via the RSI launcher's stored session.
+gRPC backend, plus RSI's Spectrum chat/forum API, authenticated via the RSI
+launcher's stored session.
 
-Non-official client against CIG's backend — against their ToS. Read-only, own
+Non-official client against CIG's backends — against their ToS. Read-only, own
 account, at your own risk.
 
 ```toml

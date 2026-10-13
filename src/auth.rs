@@ -52,6 +52,9 @@ pub struct MintOptions {
 impl MintOptions {
     /// Derive options from launcher credentials (env from platform id, channel
     /// from the store default, UA from the launcher version).
+    ///
+    /// The UA mirrors the launcher's own, `${app.getName()}-${app.getVersion()}`
+    /// (e.g. `rsilauncher-2.18.1`).
     pub fn from_credentials(creds: &Credentials) -> Self {
         Self {
             env: Env::from_platform_id(creds.platform_id.as_deref()),
@@ -61,8 +64,8 @@ impl MintOptions {
                 .clone()
                 .unwrap_or_else(|| "LIVE".into()),
             user_agent: format!(
-                "RSI Launcher/{}",
-                creds.launcher_version.as_deref().unwrap_or("2.13.3")
+                "rsilauncher-{}",
+                creds.launcher_version.as_deref().unwrap_or("2.18.1")
             ),
         }
     }
@@ -119,6 +122,9 @@ async fn call(
         .await?;
 
     let env: Envelope = resp.json().await?;
+    if env.code.as_deref() == Some("ErrDeprecatedApi") {
+        return Err(Error::LauncherOutdated);
+    }
     if env.success != 1 {
         return Err(Error::Mint {
             step,

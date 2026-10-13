@@ -12,6 +12,9 @@
 //! All ids stay wire-native (GUIDs, CRCs, geids); naming them is the caller's
 //! job.
 //!
+//! [`spectrum`] reads RSI's Spectrum chat/forum API on the same launcher
+//! session — e.g. the staff feed across forums and chat lobbies.
+//!
 //! Using a non-official client against CIG's backend is against their Terms of
 //! Service. This crate is read-only; use on your own account at your own risk.
 
@@ -29,6 +32,7 @@ pub mod error;
 pub mod items;
 pub mod loadouts;
 pub mod missions;
+pub mod spectrum;
 pub mod stash;
 pub mod store;
 

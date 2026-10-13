@@ -49,9 +49,33 @@ pub enum Error {
         code: Option<String>,
     },
 
-    /// HTTP transport error during the mint flow.
-    #[error("HTTP error during token mint: {0}")]
+    /// The launcher API rejected the request as from an outdated launcher
+    /// (`ErrDeprecatedApi`). Update the RSI launcher.
+    #[error("the launcher API reports this launcher version as outdated (ErrDeprecatedApi)")]
+    LauncherOutdated,
+
+    /// HTTP transport error (token mint, Spectrum).
+    #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
+
+    /// A Spectrum route returned a non-success envelope.
+    #[error("Spectrum {path} failed (code={code:?}, msg={msg:?})")]
+    Spectrum {
+        /// The route, e.g. `"/message/history"`.
+        path: String,
+        /// The envelope's `code`, e.g. `"ErrPermissionDenied"`.
+        code: Option<String>,
+        /// The envelope's `msg`.
+        msg: Option<String>,
+    },
+
+    /// Spectrum's per-IP, per-route rate limit (`ErrThrottleLimit`; ~1 req/s).
+    /// Clears within about two minutes — back off, don't retry immediately.
+    #[error("Spectrum {path} throttled (ErrThrottleLimit) — back off before retrying")]
+    Throttled {
+        /// The throttled route.
+        path: String,
+    },
 
     /// gRPC channel/transport error (connect, TLS, …).
     #[error("gRPC transport error: {0}")]
