@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.9.0
+
+- `commlinks`: `CommLinks::videos(url) -> Vec<Video { host, id }>`, the
+  videos a comm-link embeds (YouTube; Vimeo on a few 2013 posts), with
+  `Video::watch_url()`. Reads the comm-link page and its Alexandria fragment;
+  the listing carries no video ids. Covers the three page markups seen from
+  2013 to now.
+
 ## v0.8.0
 
 - `spectrum`: what a staff post answers.

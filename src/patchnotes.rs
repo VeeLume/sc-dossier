@@ -31,7 +31,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::error::{Error, Result};
-use crate::html::{between, decode_entities, squash, tokens, Tok};
+use crate::html::{alexandria_url, between, decode_entities, squash, tokens, Tok};
 
 /// Production host.
 pub const PROD_ROOT: &str = "https://robertsspaceindustries.com";
@@ -311,14 +311,6 @@ fn parse_index(html: &str, root: &str) -> Vec<PatchNoteRef> {
 fn article_id(url: &str) -> Option<u64> {
     let last = url.trim_end_matches('/').rsplit('/').next()?;
     last.split('-').next()?.parse().ok()
-}
-
-/// `const s3Url = '<url>';` in the detail page.
-fn alexandria_url(shell: &str) -> Option<String> {
-    let decl = between(shell, "const s3Url", ";")?;
-    let q = decl.find(['\'', '"'])?;
-    let quote = &decl[q..q + 1];
-    between(&decl[q..], quote, quote).map(str::to_string)
 }
 
 fn og_title(shell: &str) -> Option<String> {

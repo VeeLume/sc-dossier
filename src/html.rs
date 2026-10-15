@@ -188,6 +188,14 @@ pub(crate) fn decode_entities(s: &str) -> String {
     out
 }
 
+/// `const s3Url = '<url>';` in a detail page: the Alexandria fragment it loads.
+pub(crate) fn alexandria_url(shell: &str) -> Option<String> {
+    let decl = between(shell, "const s3Url", ";")?;
+    let q = decl.find(['\'', '"'])?;
+    let quote = &decl[q..q + 1];
+    between(&decl[q..], quote, quote).map(str::to_string)
+}
+
 /// Text after `start` up to `end`; `None` if either is missing.
 pub(crate) fn between<'a>(s: &'a str, start: &str, end: &str) -> Option<&'a str> {
     let i = s.find(start)? + start.len();

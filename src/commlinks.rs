@@ -15,6 +15,10 @@
 //! cards, newest first unless asked otherwise. The listing carries **no
 //! absolute dates** — only a relative age ("11 hours ago", "3 years ago").
 //!
+//! The listing carries no video ids. [`CommLinks::videos`] reads them from the
+//! comm-link's own page: two GETs (the page, then its Alexandria fragment;
+//! older pages, up to id ~18160, have the embed inline: one GET).
+//!
 //! No pacing, caching, or retries — the caller's policy. The listing's rate
 //! limit is unmeasured; stay under ~1 request/second.
 
@@ -22,7 +26,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::error::{Error, Result};
-use crate::html::{between, decode_entities, squash, text};
+use crate::html::{alexandria_url, between, decode_entities, squash, text, tokens, Tok};
 
 /// Production host.
 pub const PROD_ROOT: &str = "https://robertsspaceindustries.com";
@@ -85,6 +89,37 @@ impl CommLinks {
             .await
             .map_err(|_| page_err(&url, "reply is not JSON"))?;
         parse_page(&env, &self.root).map_err(|what| page_err(&url, what))
+    }
+
+    /// The videos a comm-link embeds, in page order — a [`CommLink::url`] or a
+    /// site path. Every sampled [`CommLinkKind::Video`] comm-link (2013 → now)
+    /// has exactly one; posts usually have none (a plain YouTube *link* in the
+    /// text is not counted).
+    pub async fn videos(&self, url: &str) -> Result<Vec<Video>> {
+        let url = if url.starts_with("http://") || url.starts_with("https://") {
+            url.to_string()
+        } else {
+            format!("{}/{}", self.root, url.trim_start_matches('/'))
+        };
+        let shell = self.get(&url).await?;
+        match alexandria_url(&shell) {
+            Some(body) => Ok(parse_videos(&self.get(&body).await?)),
+            None => Ok(parse_videos(&shell)),
+        }
+    }
+
+    async fn get(&self, url: &str) -> Result<String> {
+        let resp = self
+            .http
+            .get(url)
+            .header("User-Agent", &self.user_agent)
+            .send()
+            .await?;
+        let status = resp.status();
+        if !status.is_success() {
+            return Err(page_err(url, &format!("HTTP {status}")));
+        }
+        Ok(resp.text().await?)
     }
 }
 
@@ -256,6 +291,92 @@ impl Age {
         };
         u64::from(self.value) * unit
     }
+}
+
+/// An embedded video.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Video {
+    /// Where it's hosted.
+    pub host: VideoHost,
+    /// The host's id: YouTube `zNL_FgoTrjA`, Vimeo `58209081`.
+    pub id: String,
+}
+
+/// Video host.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum VideoHost {
+    /// YouTube (all comm-links since 2013).
+    YouTube,
+    /// Vimeo (a few 2013 comm-links).
+    Vimeo,
+}
+
+impl Video {
+    /// The video's own page: `https://www.youtube.com/watch?v=<id>` or
+    /// `https://vimeo.com/<id>`.
+    pub fn watch_url(&self) -> String {
+        match self.host {
+            VideoHost::YouTube => format!("https://www.youtube.com/watch?v={}", self.id),
+            VideoHost::Vimeo => format!("https://vimeo.com/{}", self.id),
+        }
+    }
+}
+
+/// Embeds in page order, deduplicated. Three markups, by comm-link id:
+/// `<g-trailer video-id="…">` (~19950 →), `<iframe src=".../embed/<id>">`
+/// inside `<g-trailer>` (~18170–19060), and a server-rendered
+/// `<iframe data-src="//www.youtube.com/embed/<id>">` (older). The page's
+/// `{$video_id}` modal templates sit in `<script>`, which the tokenizer skips.
+fn parse_videos(html: &str) -> Vec<Video> {
+    let mut out: Vec<Video> = Vec::new();
+    for tok in tokens(html) {
+        let Tok::Start { name, attrs } = tok else {
+            continue;
+        };
+        let found = attrs
+            .iter()
+            .find_map(|(k, v)| match (name.as_str(), k.as_str()) {
+                ("g-trailer", "video-id") => youtube_id(v).map(|id| Video {
+                    host: VideoHost::YouTube,
+                    id: id.to_string(),
+                }),
+                ("iframe", "src" | "data-src") => embed(v),
+                _ => None,
+            });
+        if let Some(v) = found.filter(|v| !out.contains(v)) {
+            out.push(v);
+        }
+    }
+    out
+}
+
+/// `…youtube.com/embed/<id>?…`, `…youtube-nocookie.com/embed/<id>`,
+/// `…vimeo.com/video/<id>`.
+fn embed(src: &str) -> Option<Video> {
+    let tail = |marker: &str| src.split_once(marker).map(|(_, t)| t);
+    if let Some(t) = tail("youtube.com/embed/").or_else(|| tail("youtube-nocookie.com/embed/")) {
+        let id = t.split(['?', '&', '/', '#']).next()?;
+        return youtube_id(id).map(|id| Video {
+            host: VideoHost::YouTube,
+            id: id.to_string(),
+        });
+    }
+    let id = tail("vimeo.com/video/")?
+        .split(['?', '&', '/', '#'])
+        .next()?;
+    (!id.is_empty() && id.bytes().all(|b| b.is_ascii_digit())).then(|| Video {
+        host: VideoHost::Vimeo,
+        id: id.to_string(),
+    })
+}
+
+/// YouTube ids are 11 chars of `[A-Za-z0-9_-]`.
+fn youtube_id(s: &str) -> Option<&str> {
+    let s = s.trim();
+    (s.len() == 11
+        && s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-'))
+    .then_some(s)
 }
 
 /// "just now", "11 hours ago", "1 day ago", "a month ago", "a few seconds ago".
@@ -479,6 +600,76 @@ mod tests {
         ] {
             let _ = parse_page(&json!({"success": 1, "data": s}), PROD_ROOT);
         }
+    }
+
+    const VIDEO_CURRENT: &str = include_str!("../tests/fixtures/commlinks/video_21381.body.html");
+    const VIDEO_NOCOOKIE: &str = include_str!("../tests/fixtures/commlinks/video_19053.body.html");
+    const VIDEO_IFRAME: &str = include_str!("../tests/fixtures/commlinks/video_18172.body.html");
+    const VIDEO_LEGACY: &str = include_str!("../tests/fixtures/commlinks/video_12853.shell.html");
+
+    fn yt(id: &str) -> Video {
+        Video {
+            host: VideoHost::YouTube,
+            id: id.into(),
+        }
+    }
+
+    #[test]
+    fn videos_in_every_markup() {
+        assert_eq!(parse_videos(VIDEO_CURRENT), [yt("zNL_FgoTrjA")]);
+        assert_eq!(parse_videos(VIDEO_NOCOOKIE), [yt("v3JNtoMi_a4")]);
+        assert_eq!(parse_videos(VIDEO_IFRAME), [yt("-OaMjK9nfzE")]);
+        // The legacy page also holds the `{$video_id}` modal templates.
+        assert!(VIDEO_LEGACY.contains("youtube.com/embed/{$video_id}"));
+        assert_eq!(parse_videos(VIDEO_LEGACY), [yt("J46tDrM-jHo")]);
+        // 2013 Vimeo embed (comm-link 12867), verbatim.
+        let vimeo = r#"<p><iframe src="http://player.vimeo.com/video/58209081" width="400" height="300" frameborder="0"></iframe></p>"#;
+        let v = parse_videos(vimeo);
+        assert_eq!(
+            v,
+            [Video {
+                host: VideoHost::Vimeo,
+                id: "58209081".into()
+            }]
+        );
+        assert_eq!(v[0].watch_url(), "https://vimeo.com/58209081");
+        assert_eq!(
+            yt("zNL_FgoTrjA").watch_url(),
+            "https://www.youtube.com/watch?v=zNL_FgoTrjA"
+        );
+    }
+
+    #[test]
+    fn videos_ignore_links_templates_and_duplicates() {
+        let html = r#"<a href="https://www.youtube.com/watch?v=i4rVtLAenmk">TWISC</a>
+            <iframe src="https://www.youtube.com/embed/{$video_id}?autoplay=1"></iframe>
+            <g-trailer video-id="not-an-id"></g-trailer>
+            <g-trailer video-id="zNL_FgoTrjA"></g-trailer>
+            <iframe src="https://www.youtube.com/embed/zNL_FgoTrjA?enablejsapi=1"></iframe>"#;
+        assert_eq!(parse_videos(html), [yt("zNL_FgoTrjA")]);
+        assert!(parse_videos(PAGE1).is_empty());
+        for s in [
+            "<iframe src=\"vimeo.com/video/\">",
+            "<g-trailer video-id=\"é\">",
+            "<iframe data-src=\"youtube.com/embed/",
+        ] {
+            assert!(parse_videos(s).is_empty(), "{s:?}");
+        }
+    }
+
+    /// The newest video comm-link's video, live.
+    #[tokio::test]
+    #[ignore = "live: hits robertsspaceindustries.com"]
+    async fn live_video() {
+        let cl = CommLinks::new("sc-dossier-test");
+        let q = CommLinkQuery {
+            kind: Some(CommLinkKind::Video),
+            ..Default::default()
+        };
+        let page = cl.page(&q).await.unwrap();
+        let videos = cl.videos(&page.items[0].url).await.unwrap();
+        assert_eq!(videos.len(), 1, "{videos:?}");
+        assert_eq!(videos[0].host, VideoHost::YouTube);
     }
 
     /// Page 1, live.
