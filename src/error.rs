@@ -34,14 +34,16 @@ pub enum Error {
         what: &'static str,
     },
 
-    /// A token-mint step returned a non-success envelope (e.g. an expired
-    /// session). `code` is CIG's error code when present.
+    /// A launcher v3 step (token mint, game library) returned a non-success
+    /// envelope (e.g. an expired session). `code` is CIG's error code when
+    /// present.
     #[error(
-        "token mint step '{step}' failed (success={success}, code={code:?}). \
+        "launcher step '{step}' failed (success={success}, code={code:?}). \
          A stale session reports here — re-open the RSI launcher to refresh it."
     )]
     Mint {
-        /// The launcher v3 endpoint that failed (`games/claims` | `games/release` | `games/token`).
+        /// The launcher v3 endpoint that failed (`games/claims` |
+        /// `games/release` | `games/token` | `games/library`).
         step: &'static str,
         /// The envelope's `success` field (1 = ok).
         success: i64,

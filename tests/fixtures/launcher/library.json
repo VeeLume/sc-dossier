@@ -1,0 +1,35 @@
+{
+  "code": "OK",
+  "data": {
+    "games": [
+      {
+        "channels": [
+          {
+            "id": "LIVE",
+            "installDir": "StarCitizen",
+            "name": "Live Release",
+            "network": null,
+            "platformId": "prod",
+            "servicesEndpoint": "https://pub-sc-alpha-4102-12881860.test1.cloudimperiumgames.com:443",
+            "version": 12913470,
+            "versionLabel": "4.10.2-live.12913470",
+            "weight": 10
+          }
+        ],
+        "hasGamePackage": true,
+        "id": "SC",
+        "isPromoted": true,
+        "name": "Star Citizen",
+        "playTime": {
+          "lastGameplay": null,
+          "pubTimePlayed": null
+        },
+        "playableOffline": false,
+        "status": "A",
+        "weight": 0
+      }
+    ]
+  },
+  "msg": "OK",
+  "success": 1
+}

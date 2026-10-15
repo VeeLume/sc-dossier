@@ -31,6 +31,9 @@ use serde_json::{json, Value};
 use crate::error::{Error, Result};
 use crate::store::{self, Credentials};
 
+mod hotfix;
+pub use hotfix::{HotfixCentral, HotfixEntry, HotfixItem, HotfixStatus};
+
 /// Production host (`rootUrl` in the launcher).
 pub const PROD_ROOT: &str = "https://robertsspaceindustries.com";
 /// The Star Citizen community id.

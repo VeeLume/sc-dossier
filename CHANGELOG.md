@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.10.0
+
+- `auth::library(creds, opts) -> Vec<Game>`: the games and release channels
+  this account may play (`games/claims` → `games/library`). Each
+  `GameChannel` has id, name, `version` (client changelist), `version_label`,
+  `platform_id`, `services_endpoint`, `install_dir`, `weight`, and `network`.
+  Account-scoped: a test channel shows only while it is open to this account.
+- `Spectrum::hotfix_central() -> Option<HotfixCentral>`: the pinned Hotfix
+  Central thread in SC's Patch Notes forum, anonymous, two calls. Includes the
+  opening post's last edit time (`edited_ms`), the status block (version,
+  date, `hotfix_channel_open`, LIVE client and DGS changelists), the hotfix
+  entries newest first (date, headline, builds, channel, items), and the raw
+  text.
+- `Error::Mint` now also covers `games/library`; its message says "launcher
+  step".
+
 ## v0.9.0
 
 - `commlinks`: `CommLinks::videos(url) -> Vec<Video { host, id }>`, the
