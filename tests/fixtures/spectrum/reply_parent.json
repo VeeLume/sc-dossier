@@ -1,0 +1,60 @@
+{
+ "author": {
+  "accountId": 0,
+  "avatar": null,
+  "displayname": "Player4",
+  "id": 900004,
+  "isGm": false,
+  "nickname": "Player4",
+  "presence": {
+   "info": "",
+   "since": null,
+   "status": null
+  },
+  "signature": "",
+  "spokenLanguages": [],
+  "subscriptionKey": ""
+ },
+ "childrenReplyReferences": [
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "mkale-CIG",
+    "id": 5078956,
+    "signature": ""
+   },
+   "createdAt": 1791511762,
+   "id": 9168775
+  }
+ ],
+ "createdAt": 1791505669,
+ "erasedBy": null,
+ "highlightRoleId": null,
+ "id": 9168717,
+ "isErased": false,
+ "lexicalContent": null,
+ "modifiedAt": 1791505945,
+ "nextTrackedReplyReference": null,
+ "parentReplyId": 9168106,
+ "parentReplyReference": {
+  "author": {
+   "avatar": null,
+   "displayname": "mkale-CIG",
+   "id": 5078956,
+   "signature": ""
+  },
+  "createdAt": 1791473744,
+  "id": 9168106
+ },
+ "plaintext": "Player question, first line.\nSecond line.",
+ "reactions": [],
+ "readState": {
+  "isNew": true
+ },
+ "rootReplyId": 9164138,
+ "threadId": 572419,
+ "votes": {
+  "count": 3,
+  "voted": false
+ }
+}

@@ -1,0 +1,215 @@
+{
+ "author": {
+  "accountId": 0,
+  "avatar": null,
+  "displayname": "Sean \"Criminal\" Tracy",
+  "id": 28507,
+  "isGm": false,
+  "nickname": "CIG-SeanT",
+  "presence": {
+   "info": "",
+   "since": null,
+   "status": null
+  },
+  "signature": "",
+  "spokenLanguages": [
+   "en",
+   "fr"
+  ],
+  "subscriptionKey": ""
+ },
+ "childrenReplyReferences": [
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player5",
+    "id": 900005,
+    "nickname": "Player5",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791395902,
+   "id": 9167008
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player6",
+    "id": 900006,
+    "nickname": "Player6",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791396113,
+   "id": 9167013
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player7",
+    "id": 900007,
+    "nickname": "Player7",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791396175,
+   "id": 9167014
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player8",
+    "id": 900008,
+    "nickname": "Player8",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791396196,
+   "id": 9167015
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player9",
+    "id": 900009,
+    "nickname": "Player9",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791396208,
+   "id": 9167016
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player10",
+    "id": 900010,
+    "nickname": "Player10",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791396241,
+   "id": 9167017
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player11",
+    "id": 900011,
+    "nickname": "Player11",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791396506,
+   "id": 9167025
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player12",
+    "id": 900012,
+    "nickname": "Player12",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791397108,
+   "id": 9167039
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player13",
+    "id": 900013,
+    "nickname": "Player13",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791397349,
+   "id": 9167042
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player14",
+    "id": 900014,
+    "nickname": "Player14",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791398032,
+   "id": 9167054
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player15",
+    "id": 900015,
+    "nickname": "Player15",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791398422,
+   "id": 9167063
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player16",
+    "id": 900016,
+    "nickname": "Player16",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791399021,
+   "id": 9167084
+  },
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player17",
+    "id": 900017,
+    "nickname": "Player17",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791400797,
+   "id": 9167120
+  }
+ ],
+ "createdAt": 1791395767,
+ "erasedBy": null,
+ "highlightRoleId": 2,
+ "id": 9167005,
+ "isErased": false,
+ "lexicalContent": null,
+ "modifiedAt": 1791395767,
+ "nextTrackedReplyReference": null,
+ "parentReplyId": null,
+ "parentReplyReference": null,
+ "plaintext": "I've forwarded this onto the Animation Directors and appreciate the detailed reference material (and also your superb videos! :slightly_smiling_face: ) thanks!",
+ "reactions": [
+  {
+   "count": 1,
+   "memberNames": {
+    "1386": "Player17"
+   },
+   "type": ":owl:"
+  },
+  {
+   "count": 1,
+   "memberNames": {
+    "696": "Toaster"
+   },
+   "type": ":heart_eyes:"
+  }
+ ],
+ "readState": {
+  "isNew": true
+ },
+ "rootReplyId": 9167005,
+ "threadId": 572547,
+ "votes": {
+  "count": 52,
+  "voted": false
+ }
+}

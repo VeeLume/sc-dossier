@@ -25,6 +25,7 @@
 
 use std::collections::BTreeMap;
 
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::error::{Error, Result};
@@ -202,8 +203,34 @@ impl Spectrum {
             .collect())
     }
 
+    /// One forum reply by id (`/v2/forum/thread/reply/get`) — e.g. a search
+    /// hit's [`Post::id`], then its [`Reply::parent_reply_id`] for what it
+    /// answers. Works anonymously.
+    pub async fn reply(&self, reply_id: &str) -> Result<Reply> {
+        let data = self
+            .call(
+                "/v2/forum/thread/reply/get",
+                Some(&json!({ "reply_id": reply_id })),
+            )
+            .await?;
+        Reply::from_value(&data)
+            .ok_or_else(|| Error::Invalid(format!("reply {reply_id}: unexpected shape")))
+    }
+
+    /// A forum thread's opening post by its slug ([`Thread::slug`]) — what a
+    /// top-level reply answers (`/v2/forum/thread/get`). Works anonymously.
+    pub async fn thread_opener(&self, slug: &str) -> Result<ThreadOpener> {
+        let data = self
+            .call("/v2/forum/thread/get", Some(&json!({ "slug": slug })))
+            .await?;
+        ThreadOpener::from_value(&data)
+            .ok_or_else(|| Error::Invalid(format!("thread {slug}: unexpected shape")))
+    }
+
     /// Up to 50 lobby messages, newest page first; page back by passing the
-    /// oldest returned id as `before`. Needs a session even for public lobbies.
+    /// oldest returned id as `before`. `before` is inclusive: a search hit's
+    /// [`Post::id`] returns that message and the 49 before it. Needs a session
+    /// even for public lobbies.
     pub async fn lobby_history(
         &self,
         lobby_id: &str,
@@ -454,7 +481,7 @@ pub struct Thread {
 }
 
 /// A Spectrum member.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Member {
     /// Member id.
     pub id: String,
@@ -479,7 +506,10 @@ pub struct Role {
 }
 
 /// A chat lobby message from [`Spectrum::lobby_history`].
-#[derive(Debug, Clone)]
+///
+/// Chat has no reply-to relation; [`Message::mentions`] is the only link to
+/// another member.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Message {
     /// Message id.
     pub id: String,
@@ -489,10 +519,65 @@ pub struct Message {
     pub member: Member,
     /// Plain text: the message's rich-text blocks joined by newlines.
     pub text: String,
+    /// Members @-mentioned, in entity order.
+    pub mentions: Vec<Mention>,
     /// Role the message is highlighted with.
     pub highlight_role_id: Option<u32>,
     /// Creation time, Unix seconds.
     pub time_created: i64,
+}
+
+/// An @-mention in a chat message.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Mention {
+    /// Member id.
+    pub member_id: String,
+    /// Nickname, as [`Member::nickname`] has it.
+    pub nickname: String,
+}
+
+/// A forum reply from [`Spectrum::reply`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Reply {
+    /// Reply id.
+    pub id: String,
+    /// Thread id.
+    pub thread_id: String,
+    /// The reply this one answers; `None` for a top-level reply, which
+    /// answers the thread opener ([`Spectrum::thread_opener`]). Nesting can be
+    /// deep, and the parent can itself be a staff reply.
+    pub parent_reply_id: Option<String>,
+    /// The top-level reply of this branch (itself when top-level).
+    pub root_reply_id: Option<String>,
+    /// Author.
+    pub member: Member,
+    /// Plain text (Spectrum's `plaintext`; empty when erased).
+    pub text: String,
+    /// Role the reply is highlighted with.
+    pub highlight_role_id: Option<u32>,
+    /// Whether it was deleted.
+    pub is_erased: bool,
+    /// Creation time, Unix milliseconds.
+    pub time_ms: i64,
+}
+
+/// A forum thread's opening post from [`Spectrum::thread_opener`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ThreadOpener {
+    /// Thread id.
+    pub thread_id: String,
+    /// URL slug.
+    pub slug: String,
+    /// Title.
+    pub subject: String,
+    /// Author.
+    pub member: Member,
+    /// Plain text.
+    pub text: String,
+    /// Role the opener is highlighted with.
+    pub highlight_role_id: Option<u32>,
+    /// Creation time, Unix milliseconds.
+    pub time_ms: i64,
 }
 
 impl Post {
@@ -592,7 +677,12 @@ impl Member {
                 .and_then(Value::as_str)
                 .unwrap_or("")
                 .to_string(),
-            is_gm: m.get("isGM").and_then(Value::as_bool).unwrap_or(false),
+            // Chat and search send `isGM`, the v2 forum API `isGm`.
+            is_gm: m
+                .get("isGM")
+                .or_else(|| m.get("isGm"))
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
             roles,
         })
     }
@@ -607,15 +697,77 @@ impl Message {
             .filter_map(|b| b.get("text").and_then(Value::as_str))
             .collect::<Vec<_>>()
             .join("\n");
+        // Draft.js `entityMap`: an object keyed by index, or (as served) an array.
+        let entities: Vec<&Value> = match m.pointer("/content_state/entityMap") {
+            Some(Value::Array(a)) => a.iter().collect(),
+            Some(Value::Object(o)) => o.values().collect(),
+            _ => Vec::new(),
+        };
+        let mentions = entities
+            .into_iter()
+            .filter(|e| e.get("type").and_then(Value::as_str) == Some("MENTION"))
+            .filter_map(|e| {
+                Some(Mention {
+                    member_id: id(e, "/data/id")?,
+                    nickname: e.pointer("/data/nickname")?.as_str()?.to_string(),
+                })
+            })
+            .collect();
         Some(Self {
             id: id(m, "/id")?,
             lobby_id: id(m, "/lobby_id").unwrap_or_default(),
             member: Member::from_value(m.get("member")?)?,
             text,
+            mentions,
             highlight_role_id: id(m, "/highlight_role_id").and_then(|s| s.parse().ok()),
             time_created: m.get("time_created").and_then(Value::as_i64).unwrap_or(0),
         })
     }
+}
+
+impl Reply {
+    fn from_value(r: &Value) -> Option<Self> {
+        Some(Self {
+            id: id(r, "/id")?,
+            thread_id: id(r, "/threadId")?,
+            parent_reply_id: id(r, "/parentReplyId"),
+            root_reply_id: id(r, "/rootReplyId"),
+            member: Member::from_value(r.get("author")?)?,
+            text: plaintext(r),
+            highlight_role_id: id(r, "/highlightRoleId").and_then(|s| s.parse().ok()),
+            is_erased: r.get("isErased").and_then(Value::as_bool).unwrap_or(false),
+            time_ms: created_ms(r),
+        })
+    }
+}
+
+impl ThreadOpener {
+    fn from_value(t: &Value) -> Option<Self> {
+        let s = |k: &str| t.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+        Some(Self {
+            thread_id: id(t, "/id")?,
+            slug: s("slug"),
+            subject: s("subject"),
+            member: Member::from_value(t.get("member")?)?,
+            text: plaintext(t),
+            highlight_role_id: id(t, "/highlightRoleId").and_then(|s| s.parse().ok()),
+            time_ms: created_ms(t),
+        })
+    }
+}
+
+fn plaintext(v: &Value) -> String {
+    v.get("plaintext")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_string()
+}
+
+/// v2 forum `createdAt` is Unix seconds.
+fn created_ms(v: &Value) -> i64 {
+    v.get("createdAt")
+        .and_then(Value::as_i64)
+        .map_or(0, |s| s.saturating_mul(1000))
 }
 
 /// Spectrum sends ids as strings or numbers, inconsistently; read either.
@@ -693,5 +845,107 @@ mod tests {
         assert_eq!(msg.text, "line one\nline two");
         assert_eq!(msg.member.roles["1"], vec!["11", "2", "3", "4"]);
         assert_eq!(msg.highlight_role_id, None);
+        assert!(msg.mentions.is_empty());
+    }
+
+    fn fixture(name: &str) -> Value {
+        let path = format!(
+            "{}/tests/fixtures/spectrum/{name}",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn nested_reply_points_at_its_parent() {
+        let r = Reply::from_value(&fixture("reply_nested.json")).unwrap();
+        assert_eq!(r.id, "9168775");
+        assert_eq!(r.thread_id, "572419");
+        assert_eq!(r.parent_reply_id.as_deref(), Some("9168717"));
+        assert_eq!(r.root_reply_id.as_deref(), Some("9164138"));
+        assert_eq!(r.member.nickname, "mkale-CIG");
+        assert_eq!(r.highlight_role_id, Some(STAFF_ROLE));
+        assert!(r.text.starts_with("Thanks for the detailed write-up"));
+        assert!(r.time_ms > 1_700_000_000_000);
+        // Its parent is itself nested.
+        let p = Reply::from_value(&fixture("reply_parent.json")).unwrap();
+        assert_eq!(p.id, "9168717");
+        assert_eq!(p.parent_reply_id.as_deref(), Some("9168106"));
+        assert_eq!(p.text, "Player question, first line.\nSecond line.");
+        assert!(!p.is_erased);
+    }
+
+    #[test]
+    fn top_level_reply_answers_the_opener() {
+        let r = Reply::from_value(&fixture("reply_top_level.json")).unwrap();
+        assert_eq!(r.parent_reply_id, None);
+        assert_eq!(r.root_reply_id.as_deref(), Some(r.id.as_str()));
+        assert_eq!(r.member.nickname, "CIG-SeanT");
+        let o = ThreadOpener::from_value(&fixture("thread_opener.json")).unwrap();
+        assert_eq!(o.thread_id, r.thread_id);
+        assert_eq!(o.slug, "can-we-please-get-some-new-emotes-poses-and-or-idl");
+        assert!(o.subject.starts_with("Can we please get some new emotes"));
+        assert_eq!(o.member.nickname, "Player12");
+        assert!(!o.text.is_empty());
+        assert!(o.time_ms > 0);
+    }
+
+    #[test]
+    fn chat_mentions() {
+        let m = Message::from_value(&fixture("chat_mention.json")).unwrap();
+        assert_eq!(m.member.nickname, "Nightrider-CIG");
+        assert_eq!(
+            m.mentions,
+            [Mention {
+                member_id: "900001".into(),
+                nickname: "Player1".into()
+            }]
+        );
+        // Draft.js's object-keyed entityMap form.
+        let keyed = json!({"id": "1", "member": {"id": "2", "nickname": "A"},
+            "content_state": {"blocks": [], "entityMap": {"0": {"type": "MENTION",
+                "data": {"id": 7, "nickname": "B"}}, "1": {"type": "EMOJI", "data": ":x:"}}}});
+        let k = Message::from_value(&keyed).unwrap();
+        assert_eq!(k.mentions.len(), 1);
+        assert_eq!(k.mentions[0].member_id, "7");
+    }
+
+    #[test]
+    fn reply_shapes_that_do_not_parse() {
+        assert!(Reply::from_value(&json!({})).is_none());
+        assert!(Reply::from_value(&json!({"id": 1, "threadId": 2})).is_none());
+        assert!(ThreadOpener::from_value(&json!({"id": 1, "member": null})).is_none());
+    }
+
+    /// Newest staff forum reply, live: resolve what it answers.
+    #[tokio::test]
+    #[ignore = "live: hits robertsspaceindustries.com"]
+    async fn live_resolves_a_staff_reply_parent() {
+        let sp = Spectrum::anonymous("sc-dossier-test");
+        let page = sp
+            .search(&SearchQuery::staff().scopes(&[Scope::Reply]))
+            .await
+            .unwrap();
+        let hit = page.posts.first().expect("a staff reply");
+        let pace = || tokio::time::sleep(std::time::Duration::from_millis(1500));
+        pace().await;
+        let r = sp.reply(&hit.id).await.unwrap();
+        assert_eq!(r.id, hit.id);
+        assert_eq!(Some(&r.thread_id), hit.thread.as_ref().map(|t| &t.id));
+        pace().await;
+        match &r.parent_reply_id {
+            Some(parent) => {
+                let p = sp.reply(parent).await.unwrap();
+                assert_eq!(p.thread_id, r.thread_id);
+                assert!(!p.text.is_empty() || p.is_erased);
+            }
+            None => {
+                let o = sp
+                    .thread_opener(&hit.thread.as_ref().unwrap().slug)
+                    .await
+                    .unwrap();
+                assert_eq!(o.thread_id, r.thread_id);
+            }
+        }
     }
 }

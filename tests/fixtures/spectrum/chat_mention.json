@@ -1,0 +1,71 @@
+{
+ "content_state": {
+  "blocks": [
+   {
+    "data": [],
+    "depth": 0,
+    "entityRanges": [
+     {
+      "key": 0,
+      "length": 13,
+      "offset": 0
+     }
+    ],
+    "inlineStyleRanges": [],
+    "key": "4ealv",
+    "text": "@Player1 shall we not please.",
+    "type": "unstyled"
+   }
+  ],
+  "entityMap": [
+   {
+    "data": {
+     "id": "900001",
+     "nickname": "Player1"
+    },
+    "mutability": "IMMUTABLE",
+    "type": "MENTION"
+   }
+  ]
+ },
+ "highlight_role_id": "2",
+ "id": "67290980",
+ "lobby_id": "4",
+ "media_id": "",
+ "member": {
+  "avatar": null,
+  "displayname": "Nightrider-CIG",
+  "id": "419208",
+  "isGM": true,
+  "nickname": "Nightrider-CIG",
+  "presence": {
+   "info": null,
+   "since": 1792034403,
+   "status": "offline"
+  },
+  "roles": {
+   "1": [
+    "11",
+    "2",
+    "285269",
+    "285270",
+    "3",
+    "4"
+   ]
+  },
+  "signature": "",
+  "spoken_languages": []
+ },
+ "member_id": "419208",
+ "reactions": [
+  {
+   "count": 1,
+   "members": {
+    "23756": "Wakkus//Maximus"
+   },
+   "type": ":face_with_monocle:"
+  }
+ ],
+ "time_created": 1792032149,
+ "time_modified": 1792032149
+}

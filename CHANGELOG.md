@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.8.0
+
+- `spectrum`: what a staff post answers.
+  - `Spectrum::reply(id) -> Reply { id, thread_id, parent_reply_id,
+    root_reply_id, member, text, highlight_role_id, is_erased, time_ms }`
+    (`/v2/forum/thread/reply/get`); a `None` parent means the reply answers
+    the thread opener.
+  - `Spectrum::thread_opener(slug) -> ThreadOpener`
+    (`/v2/forum/thread/get`).
+  - Both work anonymously.
+- `Message::mentions: Vec<Mention { member_id, nickname }>` from the chat
+  message's `MENTION` entities. Chat has no reply-to relation.
+- `lobby_history`'s `before` cursor is documented as inclusive.
+- `Member` and `Message` now derive `PartialEq`, `Serialize`, `Deserialize`;
+  `Member::is_gm` also reads the v2 forum's `isGm`.
+
 ## v0.7.0
 
 - `commlinks`: the comm-link listing from the public RSI website, anonymous.

@@ -1,0 +1,74 @@
+{
+ "author": {
+  "accountId": 0,
+  "avatar": null,
+  "displayname": "mkale-CIG",
+  "id": 5078956,
+  "isGm": false,
+  "nickname": "mkale-CIG",
+  "presence": {
+   "info": "",
+   "since": null,
+   "status": null
+  },
+  "signature": "",
+  "spokenLanguages": [
+   "en"
+  ],
+  "subscriptionKey": ""
+ },
+ "childrenReplyReferences": [
+  {
+   "author": {
+    "avatar": null,
+    "displayname": "Player2",
+    "id": 900002,
+    "nickname": "Player2",
+    "signature": "",
+    "spokenLanguages": []
+   },
+   "createdAt": 1791529949,
+   "id": 9168929
+  }
+ ],
+ "createdAt": 1791511762,
+ "erasedBy": null,
+ "highlightRoleId": 2,
+ "id": 9168775,
+ "isErased": false,
+ "lexicalContent": null,
+ "modifiedAt": 1791689789,
+ "nextTrackedReplyReference": null,
+ "parentReplyId": 9168717,
+ "parentReplyReference": {
+  "author": {
+   "avatar": null,
+   "displayname": "Player3",
+   "id": 900003,
+   "nickname": "Player3",
+   "signature": "",
+   "spokenLanguages": []
+  },
+  "createdAt": 1791505669,
+  "id": 9168717
+ },
+ "plaintext": "Thanks for the detailed write-up, but this is a general physics engine issue (one that is present in all engines). In this case it's amplified because everything is on the network. Stacking more and more masses will eventually make it unstable in any engine that solves for contacts iteratively using floating point numbers. Even offline ones, and especially real-time/game engines. It's all about tradeoffs.",
+ "reactions": [
+  {
+   "count": 1,
+   "memberNames": {
+    "1386": "Player17"
+   },
+   "type": ":owl:"
+  }
+ ],
+ "readState": {
+  "isNew": true
+ },
+ "rootReplyId": 9164138,
+ "threadId": 572419,
+ "votes": {
+  "count": 15,
+  "voted": false
+ }
+}
