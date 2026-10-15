@@ -54,7 +54,7 @@ pub enum Error {
     #[error("the launcher API reports this launcher version as outdated (ErrDeprecatedApi)")]
     LauncherOutdated,
 
-    /// HTTP transport error (token mint, Spectrum, patch notes).
+    /// HTTP transport error (token mint, Spectrum, website reads).
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
 
@@ -77,8 +77,8 @@ pub enum Error {
         path: String,
     },
 
-    /// An RSI web page (patch notes) answered with an error status or an
-    /// unexpected shape.
+    /// An RSI web page or website API (patch notes, comm-links) answered with
+    /// an error status or an unexpected shape.
     #[error("unexpected page {url}: {what}")]
     Page {
         /// The URL fetched.

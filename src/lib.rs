@@ -15,8 +15,8 @@
 //! [`spectrum`] reads RSI's Spectrum chat/forum API on the same launcher
 //! session — e.g. the staff feed across forums and chat lobbies.
 //!
-//! [`patchnotes`] reads the LIVE patch notes from the public RSI website,
-//! anonymously.
+//! [`patchnotes`] and [`commlinks`] read the LIVE patch notes and the
+//! comm-link listing from the public RSI website, anonymously.
 //!
 //! Using a non-official client against CIG's backend is against their Terms of
 //! Service. This crate is read-only; use on your own account at your own risk.
@@ -24,12 +24,14 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+mod html;
 mod identity;
 mod proto;
 
 pub mod auth;
 pub mod blueprints;
 pub mod client;
+pub mod commlinks;
 pub mod entitlements;
 pub mod error;
 pub mod items;

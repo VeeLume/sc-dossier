@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.7.0
+
+- `commlinks`: the comm-link listing from the public RSI website, anonymous.
+  `CommLinks::page(&CommLinkQuery)` → `CommLinkPage { items, is_last }`, 10
+  per page, filterable by channel, series, kind, and text, newest or oldest
+  first. Per `CommLink`: id (from the URL), url, title, kind, channel, text
+  summary, thumbnail, comment count, and the relative age as shown plus a
+  parsed coarse `Age` — the listing has no absolute dates.
+
 ## v0.6.0
 
 - `patchnotes`: LIVE patch notes from the public RSI website, anonymous.
