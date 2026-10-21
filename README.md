@@ -2,8 +2,8 @@
 
 Read-only Rust client for Star Citizen account data from CIG's game-services
 gRPC backend, plus RSI's Spectrum chat/forum API, authenticated via the RSI
-launcher's stored session. LIVE patch notes and comm-links from the public
-RSI website, anonymously.
+launcher's stored session. LIVE patch notes, comm-links, and the pledge-store
+ship list from the public RSI website, anonymously.
 
 Non-official client against CIG's backends — against their ToS. Read-only, own
 account, at your own risk.

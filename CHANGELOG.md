@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.11.0
+
+- `pledge`: the pledge store's ship list from the public RSI website,
+  anonymous. `PledgeStore::ships() -> Vec<StoreShip>` walks the store
+  GraphQL (30 per page, about 9 calls), newest store page first. Per
+  `StoreShip`: ship-matrix `id`, `name`, store `url`, `msrp_cents` (USD),
+  `published_at`, and `media` (thumbnail, slideshow, 1920×1080 wallpaper).
+  `published_at` is when the store page went up, roughly the first concept
+  sale, **not** the in-game release; early rows share a backfill date and a
+  few have none.
+
 ## v0.10.0
 
 - `auth::library(creds, opts) -> Vec<Game>`: the games and release channels

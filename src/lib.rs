@@ -16,7 +16,8 @@
 //! session — e.g. the staff feed across forums and chat lobbies.
 //!
 //! [`patchnotes`] and [`commlinks`] read the LIVE patch notes and the
-//! comm-link listing from the public RSI website, anonymously.
+//! comm-link listing from the public RSI website, anonymously; [`pledge`] the
+//! pledge store's ship list.
 //!
 //! Using a non-official client against CIG's backend is against their Terms of
 //! Service. This crate is read-only; use on your own account at your own risk.
@@ -38,6 +39,7 @@ pub mod items;
 pub mod loadouts;
 pub mod missions;
 pub mod patchnotes;
+pub mod pledge;
 pub mod spectrum;
 pub mod stash;
 pub mod store;
