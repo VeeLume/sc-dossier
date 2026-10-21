@@ -12,7 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let s = r.standing.as_ref();
         println!(
             "{:<14} {:<40} {:>8}  {:<40} min={:<7} gated={}",
-            r.org_geid.map_or_else(|| r.entity.clone(), |g| g.to_string()),
+            r.org_geid
+                .map_or_else(|| r.entity.clone(), |g| g.to_string()),
             r.scope,
             r.score,
             s.map_or("-", |s| s.name.as_str()),

@@ -17,7 +17,7 @@
 //!
 //! [`patchnotes`] and [`commlinks`] read the LIVE patch notes and the
 //! comm-link listing from the public RSI website, anonymously; [`pledge`] the
-//! pledge store's ship list.
+//! pledge store's ship list; [`orgs`] player organizations.
 //!
 //! Using a non-official client against CIG's backend is against their Terms of
 //! Service. This crate is read-only; use on your own account at your own risk.
@@ -38,6 +38,7 @@ pub mod error;
 pub mod items;
 pub mod loadouts;
 pub mod missions;
+pub mod orgs;
 pub mod patchnotes;
 pub mod pledge;
 pub mod reputation;

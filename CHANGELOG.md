@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.13.0
+
+- `orgs`: player organizations from the public RSI website, anonymous.
+  - `Orgs::citizen_orgs(handle) -> Vec<Membership>`: a citizen's main org
+    and affiliations, each with SID, name, logo, member count, the
+    citizen's rank title, and stars (0–5).
+  - `Orgs::org(sid) -> Org`: name, logo, banner, member count, archetype,
+    commitment, role play, primary and secondary focus, and the intro,
+    history, manifesto, and charter as text.
+  - `Orgs::members(sid, &MemberQuery) -> MemberPage { total, members,
+    is_last }`: 32 per page, with optional search. Per `Member`: handle,
+    display name, rank, stars, roles, avatar, and whether this is their main
+    org.
+  - Redacted and hidden entries are kept, with `Visibility` set and no
+    personal details.
+- `examples/reputations_dump.rs` is now rustfmt-clean.
+
 ## v0.12.0
 
 - `Dossier::reputations() -> Vec<Reputation>`: the player's reputation
