@@ -40,6 +40,7 @@ pub mod loadouts;
 pub mod missions;
 pub mod patchnotes;
 pub mod pledge;
+pub mod reputation;
 pub mod spectrum;
 pub mod stash;
 pub mod store;
@@ -50,6 +51,7 @@ pub use error::{Error, Result};
 pub use items::{Context, Inventory, InventoryType, Item, Location, Resource};
 pub use loadouts::{Loadout, LoadoutEntry, LoadoutItem, LoadoutSlot};
 pub use missions::{Mission, MissionObjective, ObjectiveKind, ObjectiveState};
+pub use reputation::{Reputation, Standing};
 pub use stash::{
     port_crc, Crafted, Ingredient, IngredientKind, ItemNode, Ownership, Stash, Stashes,
 };
@@ -156,5 +158,12 @@ impl Dossier {
     pub async fn loadouts(&self) -> Result<Vec<Loadout>> {
         let player = self.player().await?;
         loadouts::query(&self.channel, &player.jwt).await
+    }
+
+    /// The player's reputation standings, one per `(org, scope)`, with the
+    /// current rank. Ids are DCB keys; see [`reputation`].
+    pub async fn reputations(&self) -> Result<Vec<Reputation>> {
+        let player = self.player().await?;
+        reputation::query(&self.channel, &player.jwt).await
     }
 }

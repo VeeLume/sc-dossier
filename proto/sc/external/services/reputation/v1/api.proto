@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package sc.external.services.reputation.v1;
+
+// TRIMMED copy of the reverse-engineered proto from 19h/space-reversing
+// (scproto/sc/proto/.../reputation/v1/api.proto): gateway annotations removed,
+// only the read RPC this crate calls is kept. Names, numbers and types are
+// identical to upstream.
+
+import "sc/external/services/reputation/v1/types.proto";
+import "sc/external/common/api/v1/pagination.proto";
+import "sc/external/common/api/v1/query.proto";
+
+service ReputationService {
+  rpc QueryReputations (.sc.external.services.reputation.v1.QueryReputationsRequest) returns (.sc.external.services.reputation.v1.QueryReputationsResponse) {}
+}
+
+message QueryReputationsRequest {
+  .sc.external.common.api.v1.Query query = 4;
+  reserved 1, 2, 3;
+}
+
+message QueryReputationsResponse {
+  repeated .sc.external.services.reputation.v1.VersionedReputation results = 1;
+  .sc.external.common.api.v1.PaginationInfo page_info = 2;
+}

@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.12.0
+
+- `Dossier::reputations() -> Vec<Reputation>`: the player's reputation
+  standings (`ReputationService.QueryReputations`, player-scoped), one per
+  `(org, scope)`. Per `Reputation`: row `id`, `org_geid` (parsed from the
+  `entity` urn), `entity`, `scope`, `score`, `scope_id`, `updated_at_ms`, and
+  the current `Standing { id, name, min, drift_amount, drift_every_secs,
+  gated }`. All ids are DCB keys: `org_geid` = `FactionReputation.GEID`,
+  `scope_id` = the `SReputationScopeParams` record with the full rank ladder,
+  `Standing::id` = the `SReputationStandingParams` record.
+- `examples/reputations_dump.rs`.
+
 ## v0.11.0
 
 - `pledge`: the pledge store's ship list from the public RSI website,

@@ -31,6 +31,11 @@ pub(crate) mod sc {
                     tonic::include_proto!("sc.external.services.mission_service.v1");
                 }
             }
+            pub(crate) mod reputation {
+                pub(crate) mod v1 {
+                    tonic::include_proto!("sc.external.services.reputation.v1");
+                }
+            }
         }
         pub(crate) mod common {
             pub(crate) mod api {
@@ -64,3 +69,4 @@ pub(crate) use sc::external::services::entitlement::v2 as entitlement;
 pub(crate) use sc::external::services::entitygraph::v1 as entitygraph;
 pub(crate) use sc::external::services::identity::v1 as identity;
 pub(crate) use sc::external::services::mission_service::v1 as mission_service;
+pub(crate) use sc::external::services::reputation::v1 as reputation;
