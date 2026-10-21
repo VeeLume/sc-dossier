@@ -11,7 +11,14 @@
 //! - [`Standing::id`] = an `SReputationStandingParams` record GUID (the rank's
 //!   display name).
 //!
-//! Resolving them is the caller's job (sc-holotable).
+//! Resolving them is the caller's job. sc-holotable's `sc-missions`
+//! (`reputation` module, v0.33.0+) has a lookup for each:
+//!
+//! - `FactionReputations::by_geid(org_geid)` → `FactionRep` (name key).
+//! - `ReputationScopes::get(&scope_id)` → `ReputationScope` (ceiling, ranks
+//!   lowest first).
+//! - `ReputationStandings::get(&standing.id)` → `Standing` (display key,
+//!   `min_reputation`).
 
 use std::collections::HashSet;
 

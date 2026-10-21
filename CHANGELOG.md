@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.13.1
+
+- `reputation` docs name the sc-holotable lookups (`sc-missions` v0.33.0+)
+  that resolve each id: `FactionReputations::by_geid`,
+  `ReputationScopes::get`, and `ReputationStandings::get`.
+
 ## v0.13.0
 
 - `orgs`: player organizations from the public RSI website, anonymous.
