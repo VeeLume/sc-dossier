@@ -13,6 +13,12 @@ account, at your own risk.
 sc-dossier = { git = "https://github.com/VeeLume/sc-dossier", tag = "<release tag>" }
 ```
 
+The game's own local telemetry stream needs none of the above:
+
+```toml
+sc-dossier = { git = "https://github.com/VeeLume/sc-dossier", tag = "<release tag>", default-features = false, features = ["telemetry"] }
+```
+
 API and usage: `cargo doc --open`. `protoc` is vendored; `cargo build` needs
 nothing else.
 

@@ -1,10 +1,10 @@
 //! Compiles the `.proto` files into prost/tonic client code. `protoc` is
 //! supplied by `protoc-bin-vendored`; generated code is included from
-//! `src/proto.rs`.
+//! `src/proto.rs`. Only the enabled features' protos are compiled.
 
 use std::error::Error;
 
-const PROTO_FILES: &[&str] = &[
+const BACKEND_PROTOS: &[&str] = &[
     "proto/sc/external/services/blueprint_library/v1/types.proto",
     "proto/sc/external/services/blueprint_library/v1/api.proto",
     "proto/sc/external/services/entitlement/v2/types.proto",
@@ -28,6 +28,12 @@ const PROTO_FILES: &[&str] = &[
     "proto/sc/external/services/reputation/v1/api.proto",
 ];
 
+/// The game's local telemetry service, carved from `StarCitizen.exe`.
+const TELEMETRY_PROTOS: &[&str] = &[
+    "proto/sc/game/telemetry/v1/types.proto",
+    "proto/sc/game/telemetry/v1/api.proto",
+];
+
 const INCLUDE_DIRS: &[&str] = &["proto"];
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -35,14 +41,24 @@ fn main() -> Result<(), Box<dyn Error>> {
     // SAFETY: build scripts are single-threaded.
     std::env::set_var("PROTOC", protoc);
 
-    for f in PROTO_FILES {
+    let mut files: Vec<&str> = Vec::new();
+    if std::env::var_os("CARGO_FEATURE_BACKEND").is_some() {
+        files.extend(BACKEND_PROTOS);
+    }
+    if std::env::var_os("CARGO_FEATURE_TELEMETRY").is_some() {
+        files.extend(TELEMETRY_PROTOS);
+    }
+    for f in BACKEND_PROTOS.iter().chain(TELEMETRY_PROTOS) {
         println!("cargo:rerun-if-changed={f}");
+    }
+    if files.is_empty() {
+        return Ok(());
     }
 
     tonic_prost_build::configure()
         .build_server(false)
         .build_client(true)
-        .compile_protos(PROTO_FILES, INCLUDE_DIRS)?;
+        .compile_protos(&files, INCLUDE_DIRS)?;
 
     Ok(())
 }

@@ -57,6 +57,7 @@ pub enum Error {
     LauncherOutdated,
 
     /// HTTP transport error (token mint, Spectrum, website reads).
+    #[cfg(feature = "backend")]
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
 

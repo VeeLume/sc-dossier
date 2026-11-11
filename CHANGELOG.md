@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.14.0
+
+- Cargo features. `backend` (default) is everything that existed so far;
+  `telemetry` is new. `default-features = false, features = ["telemetry"]`
+  builds without the launcher store, auth, TLS or HTTP. `Error::Http` exists
+  only with `backend`.
+- `telemetry`: the game's own local telemetry stream
+  (`sc.game.telemetry.v1.GameTelemetryService` on `127.0.0.1:2942`, plaintext;
+  the game hosts it with `GRPC_CLIENT_SERVER_ENABLED=true`).
+  - `connect(addr) -> TelemetryStream`, `TelemetryStream::next() ->
+    Option<Frame>`.
+  - `spawn(addr, on_status) -> JoinHandle`: own thread and runtime, reconnects
+    every 1–5 s, reports `Status::{Connected, Frame, Idle, Unavailable}`; return
+    `ControlFlow::Break` to stop. For callers without an async runtime.
+  - `Frame { vehicle, weapons, actor, turret, events }`: a full snapshot per
+    message. `Instruments::altitude`, `radar_altitude` and `heading` are `None`
+    without a reference body (the game sends `FLT_MAX` and holds the last
+    heading). Units are in the docs; `speed` is wrong in quantum travel.
+  - `Frame::decode(bytes)`: one raw message, for recorded sessions.
+  - `parse_showlocation(text) -> Option<[f64; 3]>`: the `/showlocation`
+    clipboard line, system-global metres; anything else is `None`.
+- `examples/telemetry_dump.rs`.
+
 ## v0.13.1
 
 - `reputation` docs name the sc-holotable lookups (`sc-missions` v0.33.0+)

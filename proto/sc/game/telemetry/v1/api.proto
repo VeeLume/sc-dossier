@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package sc.game.telemetry.v1;
+
+import "sc/game/telemetry/v1/types.proto";
+
+message TelemetryStreamRequest {
+}
+
+message TelemetryStreamResponse {
+  .sc.game.telemetry.v1.VehicleFrame vehicle = 3;
+  .sc.game.telemetry.v1.WeaponsFrame weapons = 4;
+  .sc.game.telemetry.v1.EventsFrame events = 5;
+  .sc.game.telemetry.v1.ActorFrame actor = 6;
+  .sc.game.telemetry.v1.ForceFeedbackFrame force_feedback = 7;
+  .sc.game.telemetry.v1.TurretFrame turret = 8;
+}
+
+service GameTelemetryService {
+  rpc TelemetryStream(.sc.game.telemetry.v1.TelemetryStreamRequest) returns (stream .sc.game.telemetry.v1.TelemetryStreamResponse);
+}

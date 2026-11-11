@@ -3,6 +3,7 @@
 //! session.
 //!
 //! ```no_run
+//! # #[cfg(feature = "backend")]
 //! # async fn run() -> Result<(), sc_dossier::Error> {
 //! let dossier = sc_dossier::Dossier::from_launcher("my-app/1.0").await?;
 //! let blueprints = dossier.owned_blueprints().await?;
@@ -19,48 +20,85 @@
 //! comm-link listing from the public RSI website, anonymously; [`pledge`] the
 //! pledge store's ship list; [`orgs`] player organizations.
 //!
+//! [`telemetry`] (feature `telemetry`) reads the game's own local telemetry
+//! stream and parses `/showlocation`; it needs none of the above.
+//!
+//! Features: `backend` (default) is everything that talks to CIG or RSI;
+//! `telemetry` is the local stream. `default-features = false, features =
+//! ["telemetry"]` links no launcher store, auth or HTTP.
+//!
 //! Using a non-official client against CIG's backend is against their Terms of
 //! Service. This crate is read-only; use on your own account at your own risk.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+#[cfg(feature = "backend")]
 mod html;
+#[cfg(feature = "backend")]
 mod identity;
+#[cfg(any(feature = "backend", feature = "telemetry"))]
 mod proto;
 
+#[cfg(feature = "backend")]
 pub mod auth;
+#[cfg(feature = "backend")]
 pub mod blueprints;
+#[cfg(feature = "backend")]
 pub mod client;
+#[cfg(feature = "backend")]
 pub mod commlinks;
+#[cfg(feature = "backend")]
 pub mod entitlements;
 pub mod error;
+#[cfg(feature = "backend")]
 pub mod items;
+#[cfg(feature = "backend")]
 pub mod loadouts;
+#[cfg(feature = "backend")]
 pub mod missions;
+#[cfg(feature = "backend")]
 pub mod orgs;
+#[cfg(feature = "backend")]
 pub mod patchnotes;
+#[cfg(feature = "backend")]
 pub mod pledge;
+#[cfg(feature = "backend")]
 pub mod reputation;
+#[cfg(feature = "backend")]
 pub mod spectrum;
+#[cfg(feature = "backend")]
 pub mod stash;
+#[cfg(feature = "backend")]
 pub mod store;
+#[cfg(feature = "telemetry")]
+pub mod telemetry;
 
+#[cfg(feature = "backend")]
 pub use blueprints::{Blueprint, BlueprintProcessType, BlueprintSource};
+#[cfg(feature = "backend")]
 pub use entitlements::{Entitlement, EntitlementSource, EntitlementStatus};
 pub use error::{Error, Result};
+#[cfg(feature = "backend")]
 pub use items::{Context, Inventory, InventoryType, Item, Location, Resource};
+#[cfg(feature = "backend")]
 pub use loadouts::{Loadout, LoadoutEntry, LoadoutItem, LoadoutSlot};
+#[cfg(feature = "backend")]
 pub use missions::{Mission, MissionObjective, ObjectiveKind, ObjectiveState};
+#[cfg(feature = "backend")]
 pub use reputation::{Reputation, Standing};
+#[cfg(feature = "backend")]
 pub use stash::{
     port_crc, Crafted, Ingredient, IngredientKind, ItemNode, Ownership, Stash, Stashes,
 };
 
+#[cfg(feature = "backend")]
 use tokio::sync::OnceCell;
+#[cfg(feature = "backend")]
 use tonic::transport::Channel;
 
 /// A connected, authenticated session against the game-services backend.
+#[cfg(feature = "backend")]
 pub struct Dossier {
     channel: Channel,
     session: auth::Session,
@@ -69,6 +107,7 @@ pub struct Dossier {
     player: OnceCell<identity::PlayerSession>,
 }
 
+#[cfg(feature = "backend")]
 impl Dossier {
     /// Read launcher credentials, mint a game token, and connect. `user_agent`
     /// is the gRPC user-agent for backend calls. Returns [`Error::Mint`] if the
