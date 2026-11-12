@@ -979,6 +979,8 @@ mod tests {
 
     const INDEX: &str = include_str!("../tests/fixtures/patchnotes/index.html");
     const SHELL_4_10_2: &str = include_str!("../tests/fixtures/patchnotes/4.10.2.shell.html");
+    const SHELL_4_10_3: &str = include_str!("../tests/fixtures/patchnotes/4.10.3.shell.html");
+    const BODY_4_10_3: &str = include_str!("../tests/fixtures/patchnotes/4.10.3.body.html");
     const BODY_4_10_2: &str = include_str!("../tests/fixtures/patchnotes/4.10.2.body.html");
     const BODY_4_10_1: &str = include_str!("../tests/fixtures/patchnotes/4.10.1.body.html");
     const BODY_4_8: &str = include_str!("../tests/fixtures/patchnotes/4.8.body.html");
@@ -1141,6 +1143,29 @@ mod tests {
             .blocks
             .iter()
             .any(|b| matches!(b, Block::List(i) if i.len() > 5)));
+    }
+
+    #[test]
+    fn spa_shell_points_at_the_fragment() {
+        assert_eq!(
+            alexandria_url(SHELL_4_10_3).as_deref(),
+            Some("https://robertsspaceindustries.com/alexandria/html/6ae4cc4a4a1e94e9a64b853f/6af608aab153459bd94593dc/dBey4ds2WEtVpsQ1fTi8oh5WILU-en-mwdwb3m2-0c16a0ad")
+        );
+        assert_eq!(
+            og_title(SHELL_4_10_3).as_deref(),
+            Some("Star Citizen Alpha 4.10.3")
+        );
+        // A shell with props but no htmlUrl still falls back to s3Url.
+        let both = "<div data-platform-client-props=\"{&quot;lang&quot;:&quot;en&quot;}\"></div>                    <script>const s3Url = 'https://x/alexandria/html/a';</script>";
+        assert_eq!(alexandria_url(both).as_deref(), Some("https://x/alexandria/html/a"));
+    }
+
+    #[test]
+    fn release_4_10_3() {
+        let r = one(BODY_4_10_3);
+        assert_clean(&r);
+        assert_eq!(r.version.as_deref(), Some("4.10.3"));
+        assert!(!r.sections.is_empty());
     }
 
     #[test]

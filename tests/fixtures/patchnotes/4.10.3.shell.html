@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+    
+  
+
+
+
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Security-Policy" content="script-src &#039;self&#039; &#039;unsafe-eval&#039; &#039;nonce-vhnKsItvhDOl5GWB77GIxw==&#039; &#039;strict-dynamic&#039; https://cdnjs.cloudflare.com https://*.gstatic.com https://*.googletagmanager.com https://*.stripe.com https://*.adyen.com https://*.paypal.com https://*.payments-amazon.com https://*.recaptcha.net https://consentcdn.cookiebot.com https://analytics.tiktok.com https://connect.facebook.net" />
+<script nonce="vhnKsItvhDOl5GWB77GIxw==">
+  (function () {
+    // Read the nonce off this element rather than embedding it as a string literal: a literal
+    // stays legible in script.textContent and is never blanked by anything. The .nonce IDL
+    // property keeps the value after the browser blanks the content attribute; the attribute
+    // fallback covers the browsers that predate .nonce, which are also the ones that never
+    // blank it.
+    const thisScript = document.currentScript;
+    const nonce = (thisScript && (thisScript.nonce || thisScript.getAttribute('nonce'))) || '';
+    if (!nonce || document.__pciNoncePatched) {
+      return;
+    }
+    document.__pciNoncePatched = true;
+
+    const originalCreateElement = document.createElement;
+
+    document.createElement = function (tagName) {
+      // apply(..., arguments) so the ElementCreationOptions bag survives.
+      const element = originalCreateElement.apply(this, arguments);
+      if (String(tagName).toLowerCase() === 'script') {
+        element.setAttribute('nonce', nonce);
+      }
+      return element;
+    };
+  })();
+</script>
+        
+    <script
+    id="TagManager"
+    data-app-name="rsi-heap"
+    nonce="vhnKsItvhDOl5GWB77GIxw=="
+    data-app-version="9.618.0"
+    data-category="site"
+    data-sub-category="site-content-patchnotes"
+    src="/tag-manager/script.js"
+    data-cookieconsent="statistics"
+    type="text/plain"
+    async></script>
+    <script
+  id="ThirdPartyAnalyticsSetup"
+  tiktok-pixel="D1JGC4RC77U853IT8DAG"
+  meta-pixel="1290372492660922"
+   nonce="vhnKsItvhDOl5GWB77GIxw=="  data-cookieconsent="marketing"
+  type="text/plain"
+  src="https://cdn.robertsspaceindustries.com/static/platform/js/third-party-analytics.js"
+  async></script>    <script type="text/javascript" nonce="vhnKsItvhDOl5GWB77GIxw==">
+  window.__RSI_STORE_V2__ = {"enabled":true,"widgets":{"RedeemCodeWidget":"StoreRedeemCode"}};
+  (function() {
+    var config = window.__RSI_STORE_V2__;
+    if (!config || !config.enabled) return;
+
+    var legacyRSIStore = null;
+    var legacyLoad = null;
+    var startLegacyLoad = null;
+
+    // One legacy load, started by the first caller that needs it. On router pages platform-client
+    // injects store.js after the page scripts run, so the load can wait for the setter below.
+    // Mapped widgets never wait on it, and a failed or stalled legacy load leaves them working.
+    function loadLegacy(args) {
+      if (!legacyLoad) {
+        legacyLoad = new Promise(function(resolve) {
+          startLegacyLoad = function() {
+            startLegacyLoad = null;
+            try {
+              Promise.resolve(legacyRSIStore.load.apply(legacyRSIStore, args || [])).then(resolve, function(e) {
+                console.error(e);
+                resolve();
+              });
+            } catch (e) {
+              console.error(e);
+              resolve();
+            }
+          };
+        });
+        if (legacyRSIStore) startLegacyLoad();
+      }
+      return legacyLoad;
+    }
+
+    function legacyApp(name) {
+      return legacyRSIStore && legacyRSIStore.apps ? legacyRSIStore.apps[name] : null;
+    }
+
+    function mapWidgets() {
+      var hasUnmigrated = false;
+      var migratedCount = 0;
+      document.querySelectorAll('rsi-store-component:not(.rendered)').forEach(function(el) {
+        var name = el.getAttribute('name') || el.tagName.toLowerCase();
+        var componentName = config.widgets[name];
+        if (componentName) {
+          el.setAttribute('data-rsi-component', componentName);
+          el.setAttribute('data-rsi-component-props', JSON.stringify(convertDataAttributes(el)));
+          el.classList.add('rendered');
+          migratedCount++;
+        } else {
+          hasUnmigrated = true;
+        }
+      });
+      if (migratedCount > 0) {
+        document.dispatchEvent(new CustomEvent('plt-client.hydrate'));
+      }
+      return hasUnmigrated;
+    }
+
+    // Until the legacy widget bundle replaces window.RSIStore.widgets with its own map, onReady
+    // callbacks are held and written into that map once it exists.
+    var pendingWidgets = new Proxy({}, {
+      get: function(target, id) {
+        function register(cb) {
+          loadLegacy().then(function() {
+            if (shim.widgets !== pendingWidgets) {
+              (shim.widgets[id] = shim.widgets[id] || {}).onReady = cb;
+            }
+          });
+        }
+        return {
+          get onReady() { return register; },
+          set onReady(cb) { register(cb); }
+        };
+      }
+    });
+
+    var shim = {
+      apps: {
+        StoreWidget: {
+          initialize: function() {
+            if (mapWidgets()) {
+              loadLegacy().then(function() {
+                var legacyWidget = legacyApp('StoreWidget');
+                if (mapWidgets() && legacyWidget) {
+                  legacyWidget.initialize();
+                }
+              });
+            }
+          }
+        },
+        ShipUpgradesApp: {
+          open: function() {
+            var args = arguments;
+            return loadLegacy().then(function() {
+              var legacyUpgrades = legacyApp('ShipUpgradesApp');
+              if (legacyUpgrades) {
+                return legacyUpgrades.open.apply(null, args);
+              }
+            });
+          }
+        }
+      },
+      widgets: pendingWidgets,
+      // The legacy widgets read domainUrl back through window.RSIStore.
+      get domainUrl() {
+        return legacyRSIStore ? legacyRSIStore.domainUrl : undefined;
+      },
+      load: function() {
+        loadLegacy(Array.prototype.slice.call(arguments));
+        return Promise.resolve({ default: shim.apps });
+      }
+    };
+
+    function convertDataAttributes(el) {
+      var props = {};
+      Array.prototype.forEach.call(el.attributes, function(attr) {
+        if (attr.name === 'name' || attr.name === 'class' || attr.name === 'data-rsi-component' || attr.name === 'data-rsi-component-props') return;
+        var value = attr.value;
+        if (value && value.indexOf('json://') === 0) {
+          try { value = JSON.parse(decodeURIComponent(value.substring(7))); } catch(e) {}
+        }
+        props[attr.name] = value;
+      });
+      return props;
+    }
+
+    // Capture relies on store.js reassigning window.RSIStore wholesale; a refactor that
+    // mutates the existing object instead would never trigger this setter.
+    Object.defineProperty(window, 'RSIStore', {
+      configurable: true,
+      get: function() { return shim; },
+      set: function(val) {
+        legacyRSIStore = val;
+        if (val && startLegacyLoad) startLegacyLoad();
+      }
+    });
+  })();
+</script>
+    <script type="text/javascript" nonce="vhnKsItvhDOl5GWB77GIxw==" >
+    window.cookieBotEnabled = true;
+  </script>
+  <script
+    type="text/javascript"
+    id="Cookiebot"
+    src="https://consent.cookiebot.com/uc.js"
+    data-cbid="a687ee30-df65-45a0-9d22-90de6c1bb964"
+    data-georegions="{'region':'US-06,US-51,AT,BE,BG,HR,CY,CZ,DK,EE,FI,FR,DE,GR,HU,IE,IT,LV,LT,LU,MT,NL,PL,PT,RO,SK,SL,ES,SE','cbid':'a687ee30-df65-45a0-9d22-90de6c1bb964'}"
+    async    nonce="vhnKsItvhDOl5GWB77GIxw=="   ></script>
+  <script id="CookieConsent" src="/cookie-consent/script.js?async=1" type="text/javascript"  nonce="vhnKsItvhDOl5GWB77GIxw==" ></script>
+  <style>#CybotCookiebotDialogPoweredbyCybot { display: none; visibility: hidden; }</style>
+        <title>Star Citizen Alpha 4.10.3 - Roberts Space Industries | Follow the development of Star Citizen and Squadron 42</title>
+
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="description" content="Roberts Space Industries is the official go-to website for all news  about Star Citizen and Squadron 42. It also hosts the online store for game items and merch, as well as all the community tools used by our fans.">
+
+    
+    <meta property="og:url" content="https://robertsspaceindustries.com/en/comm-link/Patch-Notes/21429-Star-Citizen-Alpha-4103" />
+    <meta property="og:locale" content="en" />
+    <meta property="og:site_name" content="Roberts Space Industries" />
+    <meta property="og:type" content="website" />
+        <meta property="og:title" content="Star Citizen Alpha 4.10.3" />
+        <meta property="og:image:type" content="image/jpeg" />    <meta property="og:image:width" content="2048" />    <meta property="og:image:height" content="1024" />    <meta property="og:image" content="https://robertsspaceindustries.com/i/b8e903c787f5cef5018be27777953bb5af909043/resize(2048,1024,cover,ADdPNihJzmPbNuTnFsH1DqUeqBRpXdSXVVtgJTyDDgscGKrzJuoFjResjZbBuRbU1CeJsXWoKxodeTxvHLoaK7rSi)/source.jpg" />
+    <meta property="og:image:alt" content="Star Citizen Alpha 4.10.3" />
+    <meta property="og:description" content="Roberts Space Industries is the official go-to website for all news  about Star Citizen and Squadron 42. It also hosts the online store for game items and merch, as well as all the community tools used by our fans." />
+        <meta name="twitter:card" content="summary_large_image">
+    <meta property="twitter:domain" content="robertsspaceindustries.com">
+      
+    <meta name="twitter:title" content="Star Citizen Alpha 4.10.3" />
+    <meta name="twitter:description" content="Roberts Space Industries is the official go-to website for all news  about Star Citizen and Squadron 42. It also hosts the online store for game items and merch, as well as all the community tools used by our fans." />
+    <meta name="twitter:image" content="https://robertsspaceindustries.com/i/b8e903c787f5cef5018be27777953bb5af909043/resize(2048,1024,cover,ADdPNihJzmPbNuTnFsH1DqUeqBRpXdSXVVtgJTyDDgscGKrzJuoFjResjZbBuRbU1CeJsXWoKxodeTxvHLoaK7rSi)/source.jpg" />
+    <meta name="twitter:image:alt" content="Star Citizen Alpha 4.10.3" />
+      
+    <meta name="csrf-token" content="549fc5edf5342eb11caefc4a036e3e5e6691faf4498e1e776b5ad195de707b63" />
+
+    <meta name="atom-slug" content="r6ahgh8ujwrex"/>
+
+    <link rel="canonical" href="https://robertsspaceindustries.com/en/comm-link/Patch-Notes/21429-Star-Citizen-Alpha-4103">
+
+          <link rel="icon" type="image/x-icon" href="https://cdn.robertsspaceindustries.com/static/images/favicons/rsi/favicon.ico">
+      <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.robertsspaceindustries.com/static/images/favicons/rsi/favicon-16x16.png">
+      <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.robertsspaceindustries.com/static/images/favicons/rsi/favicon-32x32.png">
+      <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.robertsspaceindustries.com/static/images/favicons/rsi/apple-touch-icon.png">
+    
+    <script id="json-ld-breadcrumbs" type="application/ld+json" nonce="vhnKsItvhDOl5GWB77GIxw==" >
+{"@context":"https:\/\/schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"item":{"@id":"https:\/\/robertsspaceindustries.com\/en\/","name":"Home"}},{"@type":"ListItem","position":2,"item":{"name":"Patch Notes - Star Citizen Alpha 4.10.3"}}]}
+</script>
+
+    
+                  <link rel="alternate" href="https://robertsspaceindustries.com/comm-link/Patch-Notes/21429-Star-Citizen-Alpha-4103" hreflang="x-default">
+                    <link rel="alternate" href="https://robertsspaceindustries.com/en/comm-link/Patch-Notes/21429-Star-Citizen-Alpha-4103" hreflang="en">
+                            
+
+        <link rel=preconnect href="//sentry.turbulent.ca">
+    <link rel=preconnect href="//gstatic.com">
+        <link rel=preconnect href="//www.recaptcha.net">    <link rel=preconnect href="//www.googletagmanager.com">
+    <link rel="preconnect" href="//cdn.robertsspaceindustries.com">
+    <link rel="preconnect" href="//fonts.gstatic.com">
+    <link rel="preconnect" href="//cdnjs.cloudflare.com">
+    <link rel="preconnect" href="//media.robertsspaceindustries.com">
+      
+
+        <link href="https://static.robertsspaceindustries.com/rsi/static/css/rsi-minimal.css?v=9.618.0" media="all" rel="stylesheet">
+    
+
+          
+        
+          
+
+
+          
+
+          <script  nonce="vhnKsItvhDOl5GWB77GIxw==" >
+    window.recaptcha_is_loaded = false;
+    window.on_recaptcha_load_callback = function() {
+    window.recaptcha_is_loaded = true;
+    };
+</script>
+
+<script
+    data-cookieconsent="necessary"
+    type="text/plain"
+     nonce="vhnKsItvhDOl5GWB77GIxw=="    src="https://www.recaptcha.net/recaptcha/enterprise.js?onload=on_recaptcha_load_callback&render=6LerBOgUAAAAAKPg6vsAFPTN66Woz-jBClxdQU-o"
+    async defer>
+</script>    
+    <script type="text/javascript"  nonce="vhnKsItvhDOl5GWB77GIxw==" >
+      
+    </script>
+
+    
+
+    
+    
+    
+<script 
+    type="module" 
+    data-cookieconsent="ignore" 
+    src="https://static.robertsspaceindustries.com/plt-client/plt-client.es.js"
+     nonce="vhnKsItvhDOl5GWB77GIxw=="     data-platform-client-props="{&quot;use_router&quot;:true,&quot;spa_mode&quot;:true,&quot;routerParams&quot;:{&quot;component&quot;:&quot;AlexandriaPage&quot;,&quot;props&quot;:{&quot;api&quot;:{&quot;version&quot;:&quot;latest&quot;,&quot;css&quot;:&quot;https:\/\/robertsspaceindustries.com\/alexandria\/shared-library-ts\/latest\/generic.default.base.skin.css&quot;,&quot;script&quot;:&quot;https:\/\/static.robertsspaceindustries.com\/alexandria\/shared-library-ts\/latest\/main.js&quot;},&quot;content&quot;:{&quot;js&quot;:&quot;&quot;,&quot;css&quot;:&quot;span.initial{font-size:inherit!important; margin-right:0px!important;}\n\n.variant-left a.image {\nfloat: left!important;\nmargin-top:0px!important;\nmargin-right:20px!important;\n}\n\nh1 {margin:20px 0px 30px 0px!important;}\n\n.rsi-markup .segment .content .image img{border-radius: 0!important}\n\n.rsi-markup .segment .content {padding-bottom:0px!important; padding-top:0px!important}\n\n.rsi-markup .segment .content .variant-left p {width:auto!important; max-width:none!important;}\n\n.mb-full img { width: 100%;\n}&quot;,&quot;html&quot;:null,&quot;htmlUrl&quot;:&quot;https:\/\/robertsspaceindustries.com\/alexandria\/html\/6ae4cc4a4a1e94e9a64b853f\/6af608aab153459bd94593dc\/dBey4ds2WEtVpsQ1fTi8oh5WILU-en-mwdwb3m2-0c16a0ad&quot;,&quot;skin&quot;:&quot;generic.default.base&quot;,&quot;theme&quot;:null,&quot;skinUrl&quot;:&quot;https:\/\/static.robertsspaceindustries.com\/alexandria\/shared-library-ts\/latest\/generic.default.base.skin.css&quot;}}},&quot;platformBar&quot;:{&quot;data&quot;:{&quot;root&quot;:&quot;home&quot;,&quot;active&quot;:&quot;dyn_bd_second_level_21429-Star-Citizen-Alpha-4103&quot;,&quot;api&quot;:{&quot;nav&quot;:{&quot;load&quot;:[&quot;main&quot;,&quot;games&quot;,&quot;shop&quot;,&quot;explore&quot;,&quot;community&quot;,&quot;support&quot;,&quot;tools&quot;]}},&quot;nodes&quot;:{&quot;dyn_bd_first_level_Patch-Notes&quot;:{&quot;slug&quot;:&quot;dyn_bd_first_level_Patch-Notes&quot;,&quot;parent&quot;:&quot;home&quot;,&quot;item&quot;:{&quot;title&quot;:&quot;Patch Notes&quot;}},&quot;dyn_bd_second_level_21429-Star-Citizen-Alpha-4103&quot;:{&quot;slug&quot;:&quot;dyn_bd_second_level_21429-Star-Citizen-Alpha-4103&quot;,&quot;parent&quot;:&quot;dyn_bd_first_level_Patch-Notes&quot;,&quot;item&quot;:{&quot;title&quot;:&quot;Star Citizen Alpha 4.10.3&quot;}},&quot;home&quot;:{&quot;toolbar&quot;:[&quot;launcher-link&quot;]},&quot;buy-star-citizen&quot;:{&quot;item&quot;:{&quot;link&quot;:{&quot;href&quot;:&quot;\/star-citizen\/play-star-citizen&quot;}}}},&quot;layouts&quot;:{},&quot;localeSelector&quot;:{&quot;available&quot;:{&quot;languages&quot;:[&quot;en&quot;]},&quot;selected&quot;:{&quot;language&quot;:&quot;en&quot;},&quot;languages&quot;:{&quot;en&quot;:{&quot;code&quot;:&quot;en&quot;,&quot;label&quot;:&quot;English&quot;,&quot;codeLabel&quot;:&quot;en&quot;,&quot;subLabel&quot;:null,&quot;altCodes&quot;:null,&quot;badges&quot;:[],&quot;url&quot;:&quot;\/en\/comm-link\/Patch-Notes\/21429-Star-Citizen-Alpha-4103&quot;}},&quot;currency&quot;:{&quot;USD&quot;:{&quot;iso&quot;:&quot;USD&quot;,&quot;symbol&quot;:&quot;$&quot;,&quot;label&quot;:&quot;United States dollar&quot;},&quot;CAD&quot;:{&quot;iso&quot;:&quot;CAD&quot;,&quot;symbol&quot;:&quot;$&quot;,&quot;label&quot;:&quot;Canadian dollar&quot;},&quot;EUR&quot;:{&quot;iso&quot;:&quot;EUR&quot;,&quot;symbol&quot;:&quot;\u20ac&quot;,&quot;label&quot;:&quot;Euro&quot;},&quot;GBP&quot;:{&quot;iso&quot;:&quot;GBP&quot;,&quot;symbol&quot;:&quot;\u00a3&quot;,&quot;label&quot;:&quot;Pound sterling&quot;}}},&quot;primaryDomainUrl&quot;:&quot;https:\/\/robertsspaceindustries.com&quot;,&quot;tools&quot;:{&quot;launcher-link&quot;:{&quot;title&quot;:&quot;Play now&quot;,&quot;href&quot;:&quot;\/star-citizen\/play-star-citizen&quot;}}},&quot;head&quot;:{&quot;breadCrumbCurrentItem&quot;:&quot;Star Citizen Alpha 4.10.3&quot;,&quot;theme&quot;:&quot;&quot;},&quot;isHidden&quot;:false},&quot;footer&quot;:{&quot;isHidden&quot;:false,&quot;isMinimal&quot;:false,&quot;squadron42&quot;:{&quot;href&quot;:&quot;https:\/\/squadron42.com\/en\/&quot;},&quot;starCitizen&quot;:{&quot;href&quot;:&quot;https:\/\/starcitizen.com\/en\/&quot;}},&quot;lang&quot;:&quot;en&quot;,&quot;storeFront&quot;:&quot;pledge&quot;,&quot;featureFlaggedComponents&quot;:[],&quot;domain&quot;:&quot;rsi&quot;,&quot;launcherDownloadBaseUrl&quot;:&quot;https:\/\/install.robertsspaceindustries.com\/rel\/2&quot;,&quot;env&quot;:{&quot;tokenName&quot;:&quot;Rsi-Token&quot;,&quot;originUrl&quot;:&quot;https:\/\/robertsspaceindustries.com&quot;,&quot;mainUrl&quot;:&quot;https:\/\/robertsspaceindustries.com&quot;,&quot;allowedUrls&quot;:[&quot;https:\/\/robertsspaceindustries.com&quot;,&quot;https:\/\/squadron42.com&quot;,&quot;https:\/\/starcitizen.com&quot;],&quot;externalProviderUrls&quot;:[&quot;https:\/\/api-issue-council.robertsspaceindustries.com:443\/idp\/auth\/ext-idp\/rsi\/callback&quot;]},&quot;sentryParameters&quot;:{&quot;dsn&quot;:&quot;https:\/\/12233516eb04aa545ed6dc2ae13525ad@sentry.cloudimperiumgames.com\/62&quot;,&quot;environment&quot;:&quot;prod&quot;,&quot;maxBreadcrumbs&quot;:50,&quot;tracesSampleRate&quot;:0.2,&quot;replaysSessionSampleRate&quot;:0.1,&quot;replaysOnErrorSampleRate&quot;:0.5,&quot;ignoreErrors&quot;:[&quot;Sign In failed. Please confirm you are not a bot&quot;,&quot;MultiStepRequired&quot;]}}"
+></script>  </head>
+
+    <body  lang=en localized=1>
+    
+      
+    
+
+    
+      
+    
+
+    <div id="bodyWrapper">
+      <div id="platform-client-root"></div>
+      
+
+      
+
+      
+            
+      
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KHNFZPT"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+    </div>
+  </body>
+</html>

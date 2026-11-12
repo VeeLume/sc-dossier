@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.14.1
+
+- `patchnotes::article` and `commlinks::videos` read RSI's new SPA detail
+  pages: the Alexandria URL is `routerParams.props.content.htmlUrl` in
+  `data-platform-client-props`; `const s3Url` stays as the fallback for pages
+  still served the old way. Fixes "no Alexandria content URL" on 4.10.3 (and
+  now 4.10.2), and SPA video comm-links that returned no videos.
+
 ## v0.14.0
 
 - Cargo features. `backend` (default) is everything that existed so far;

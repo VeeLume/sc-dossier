@@ -188,8 +188,23 @@ pub(crate) fn decode_entities(s: &str) -> String {
     out
 }
 
-/// `const s3Url = '<url>';` in a detail page: the Alexandria fragment it loads.
+/// The Alexandria fragment a detail page loads: `routerParams.props.content.htmlUrl`
+/// in the SPA shell's `data-platform-client-props` (2026-11 →), else the older
+/// `const s3Url = '<url>';`.
 pub(crate) fn alexandria_url(shell: &str) -> Option<String> {
+    spa_html_url(shell).or_else(|| s3_url(shell))
+}
+
+fn spa_html_url(shell: &str) -> Option<String> {
+    let raw = between(shell, "data-platform-client-props=\"", "\"")?;
+    let props: serde_json::Value = serde_json::from_str(&decode_entities(raw)).ok()?;
+    let url = props
+        .pointer("/routerParams/props/content/htmlUrl")?
+        .as_str()?;
+    (!url.is_empty()).then(|| url.to_string())
+}
+
+fn s3_url(shell: &str) -> Option<String> {
     let decl = between(shell, "const s3Url", ";")?;
     let q = decl.find(['\'', '"'])?;
     let quote = &decl[q..q + 1];
