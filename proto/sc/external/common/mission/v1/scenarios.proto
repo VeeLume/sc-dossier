@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+// Carved from StarCitizen.exe (LIVE 4.10.2), trimmed to the ScenarioStatus enum
+// the ScenarioService API uses (the rest needs common/time/v1/schedule.proto).
+package sc.external.common.mission.v1;
+
+enum ScenarioStatus {
+  SCENARIO_STATUS_UNSPECIFIED = 0;
+  SCENARIO_STATUS_DISABLED = 1;
+  SCENARIO_STATUS_SCHEDULED = 2;
+  SCENARIO_STATUS_STARTING = 3;
+  SCENARIO_STATUS_RUNNING = 4;
+  SCENARIO_STATUS_STOPPING = 5;
+  SCENARIO_STATUS_STOPPED = 6;
+  SCENARIO_STATUS_DEPRECATED = 7;
+  SCENARIO_STATUS_ERROR = 8;
+}

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.15.0
+
+- `tokens`: the player's mission token wallet
+  (`MissionTokenService.QueryTokens`). `Dossier::mission_tokens() ->
+  Vec<MissionToken>`; `TokenKind::{Contract, Tag, Other}` parsed from the
+  reason. Completed intros, once-only contracts and chain steps, plus tag
+  counters (event points). Not a full contract history.
+- `events`: global events (`ScenarioService`), keyed by `MissionScenario`
+  GUID. `Dossier::event_status(ids) -> Vec<EventStatus>` (current run only;
+  past runs are dropped), `Dossier::event_progress(id) ->
+  Option<EventProgress>` (`overall` and `own` points by `Faction` GUID; `None`
+  if the event doesn't track progress).
+- `examples/tokens_dump.rs`, `examples/events_dump.rs`.
+
 ## v0.14.1
 
 - `patchnotes::article` and `commlinks::videos` read RSI's new SPA detail

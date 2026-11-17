@@ -52,6 +52,8 @@ pub mod commlinks;
 pub mod entitlements;
 pub mod error;
 #[cfg(feature = "backend")]
+pub mod events;
+#[cfg(feature = "backend")]
 pub mod items;
 #[cfg(feature = "backend")]
 pub mod loadouts;
@@ -73,12 +75,18 @@ pub mod stash;
 pub mod store;
 #[cfg(feature = "telemetry")]
 pub mod telemetry;
+#[cfg(feature = "backend")]
+pub mod tokens;
 
 #[cfg(feature = "backend")]
 pub use blueprints::{Blueprint, BlueprintProcessType, BlueprintSource};
 #[cfg(feature = "backend")]
 pub use entitlements::{Entitlement, EntitlementSource, EntitlementStatus};
 pub use error::{Error, Result};
+#[cfg(feature = "backend")]
+pub use events::{EventProgress, EventState, EventStatus};
+#[cfg(feature = "backend")]
+pub use tokens::{MissionToken, TokenKind};
 #[cfg(feature = "backend")]
 pub use items::{Context, Inventory, InventoryType, Item, Location, Resource};
 #[cfg(feature = "backend")]
@@ -205,5 +213,25 @@ impl Dossier {
     pub async fn reputations(&self) -> Result<Vec<Reputation>> {
         let player = self.player().await?;
         reputation::query(&self.channel, &player.jwt).await
+    }
+
+    /// The player's mission token wallet: completed intros, once-only contracts
+    /// and chain steps, and tag counters. See [`tokens`].
+    pub async fn mission_tokens(&self) -> Result<Vec<MissionToken>> {
+        let player = self.player().await?;
+        tokens::query(&self.channel, &player.jwt).await
+    }
+
+    /// The current run of each event, by `MissionScenario` GUID. See [`events`].
+    pub async fn event_status(&self, template_ids: &[String]) -> Result<Vec<EventStatus>> {
+        let player = self.player().await?;
+        events::status(&self.channel, &player.jwt, template_ids).await
+    }
+
+    /// One event's overall progress and the player's own share. `None` if the
+    /// event doesn't track progress.
+    pub async fn event_progress(&self, template_id: &str) -> Result<Option<EventProgress>> {
+        let player = self.player().await?;
+        events::progress(&self.channel, &player.jwt, template_id, player.geid).await
     }
 }

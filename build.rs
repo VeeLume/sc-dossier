@@ -26,6 +26,10 @@ const BACKEND_PROTOS: &[&str] = &[
     "proto/sc/external/services/mission_service/v1/api.proto",
     "proto/sc/external/services/reputation/v1/types.proto",
     "proto/sc/external/services/reputation/v1/api.proto",
+    // Mission token wallet + global-event scenarios, carved from the exe.
+    "proto/sc/external/common/mission/v1/scenarios.proto",
+    "proto/sc/external/services/mission_token/v1/api.proto",
+    "proto/sc/external/services/mission_scenario/v1/api.proto",
 ];
 
 /// The game's local telemetry service, carved from `StarCitizen.exe`.
