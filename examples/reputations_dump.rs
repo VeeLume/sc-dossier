@@ -5,7 +5,9 @@
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let dossier = sc_dossier::Dossier::from_launcher("sc-dossier-example/0.12").await?;
+    let dossier =
+        sc_dossier::Dossier::from_launcher("sc-dossier-example/0.12", sc_dossier::auth::Env::Live)
+            .await?;
     let reps = dossier.reputations().await?;
     eprintln!("[+] {} standing(s)", reps.len());
     for r in &reps {

@@ -6,7 +6,9 @@
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ids: Vec<String> = std::env::args().skip(1).collect();
-    let dossier = sc_dossier::Dossier::from_launcher("sc-dossier-example/0.15").await?;
+    let dossier =
+        sc_dossier::Dossier::from_launcher("sc-dossier-example/0.15", sc_dossier::auth::Env::Live)
+            .await?;
     for s in dossier.event_status(&ids).await? {
         println!("{} {:?}", s.template_id, s.state);
     }

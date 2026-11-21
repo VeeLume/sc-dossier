@@ -1157,7 +1157,10 @@ mod tests {
         );
         // A shell with props but no htmlUrl still falls back to s3Url.
         let both = "<div data-platform-client-props=\"{&quot;lang&quot;:&quot;en&quot;}\"></div>                    <script>const s3Url = 'https://x/alexandria/html/a';</script>";
-        assert_eq!(alexandria_url(both).as_deref(), Some("https://x/alexandria/html/a"));
+        assert_eq!(
+            alexandria_url(both).as_deref(),
+            Some("https://x/alexandria/html/a")
+        );
     }
 
     #[test]

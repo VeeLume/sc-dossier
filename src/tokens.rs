@@ -102,8 +102,15 @@ impl MissionToken {
 pub(crate) async fn query(channel: &Channel, jwt: &str) -> Result<Vec<MissionToken>> {
     let auth = BearerAuth::new(jwt)?;
     let mut client = MissionTokenServiceClient::with_interceptor(channel.clone(), auth);
-    let response = client.query_tokens(QueryTokensRequest {}).await?.into_inner();
-    Ok(response.tokens.into_iter().map(MissionToken::from_proto).collect())
+    let response = client
+        .query_tokens(QueryTokensRequest {})
+        .await?
+        .into_inner();
+    Ok(response
+        .tokens
+        .into_iter()
+        .map(MissionToken::from_proto)
+        .collect())
 }
 
 #[cfg(test)]
@@ -139,9 +146,7 @@ mod tests {
     fn other() {
         assert_eq!(TokenKind::parse(""), TokenKind::Other);
         assert_eq!(
-            TokenKind::parse(
-                "Onetime comms for entering location: StarMapObject.NyxSolarSystem"
-            ),
+            TokenKind::parse("Onetime comms for entering location: StarMapObject.NyxSolarSystem"),
             TokenKind::Other
         );
         assert_eq!(TokenKind::parse("Contract: "), TokenKind::Other);

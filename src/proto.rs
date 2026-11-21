@@ -97,9 +97,9 @@ pub(crate) use sc::external::services::entitygraph::v1 as entitygraph;
 #[cfg(feature = "backend")]
 pub(crate) use sc::external::services::identity::v1 as identity;
 #[cfg(feature = "backend")]
-pub(crate) use sc::external::services::mission_service::v1 as mission_service;
-#[cfg(feature = "backend")]
 pub(crate) use sc::external::services::mission_scenario::v1 as mission_scenario;
+#[cfg(feature = "backend")]
+pub(crate) use sc::external::services::mission_service::v1 as mission_service;
 #[cfg(feature = "backend")]
 pub(crate) use sc::external::services::mission_token::v1 as mission_token;
 #[cfg(feature = "backend")]

@@ -7,63 +7,52 @@ use serde_json::{json, Value};
 use crate::error::{Error, Result};
 use crate::store::Credentials;
 
-/// RSI environment to mint against. Maps to the launcher v3 API base.
+/// Which server environment, and so which account data, to read. Each has
+/// its own launcher API and sign-in session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Env {
-    /// Live (`robertsspaceindustries.com`).
-    Prod,
-    /// PTU / EPTU (`ptu.cloudimperiumgames.com`).
+    /// The live servers (`robertsspaceindustries.com`, the stored launcher
+    /// session). Channel `LIVE`.
+    Live,
+    /// The PTU servers (`ptu.cloudimperiumgames.com`, a PTU session signed in
+    /// from the live one). Channel `PTU`, else `EPTU`, whichever the account
+    /// may play now.
     Ptu,
-    /// Staging.
-    Staging,
 }
 
 impl Env {
     fn api_base(self) -> &'static str {
         match self {
-            Env::Prod => "https://robertsspaceindustries.com/api/launcher/v3",
+            Env::Live => "https://robertsspaceindustries.com/api/launcher/v3",
             Env::Ptu => "https://ptu.cloudimperiumgames.com/api/launcher/v3",
-            Env::Staging => "https://staging.cloudimperiumgames.com/api/launcher/v3",
-        }
-    }
-
-    /// Map a launcher `platformId` (`"prod"` / `"ptu"`) to an [`Env`].
-    pub fn from_platform_id(platform_id: Option<&str>) -> Env {
-        match platform_id {
-            Some("ptu") => Env::Ptu,
-            _ => Env::Prod,
         }
     }
 }
 
-/// Options for the mint flow. [`MintOptions::from_credentials`] derives
-/// env / channel / User-Agent from the launcher store.
+/// Options for the mint flow. [`MintOptions::from_credentials`] takes the
+/// [`Env`] from the caller and the User-Agent from the launcher store.
 #[derive(Debug, Clone)]
 pub struct MintOptions {
-    /// Environment to mint against.
+    /// Server environment to mint for.
     pub env: Env,
     /// Game id. Defaults to `"SC"`.
     pub game: String,
-    /// Channel id, e.g. `"LIVE"`.
-    pub channel: String,
     /// User-Agent for the launcher v3 calls.
     pub user_agent: String,
 }
 
 impl MintOptions {
-    /// Derive options from launcher credentials (env from platform id, channel
-    /// from the store default, UA from the launcher version).
+    /// Options for `env`, UA from the launcher version. The channel selected
+    /// in the launcher is not read: each environment has its own account
+    /// data, so the caller picks it.
     ///
     /// The UA mirrors the launcher's own, `${app.getName()}-${app.getVersion()}`
     /// (e.g. `rsilauncher-2.18.1`).
-    pub fn from_credentials(creds: &Credentials) -> Self {
+    pub fn from_credentials(creds: &Credentials, env: Env) -> Self {
         Self {
-            env: Env::from_platform_id(creds.platform_id.as_deref()),
+            env,
             game: "SC".into(),
-            channel: creds
-                .default_channel
-                .clone()
-                .unwrap_or_else(|| "LIVE".into()),
             user_agent: format!(
                 "rsilauncher-{}",
                 creds.launcher_version.as_deref().unwrap_or("2.18.1")
@@ -104,52 +93,130 @@ struct Envelope {
     code: Option<String>,
 }
 
-async fn call(
-    client: &reqwest::Client,
-    creds: &Credentials,
-    opts: &MintOptions,
-    step: &'static str,
-    payload: Value,
-) -> Result<Value> {
-    let url = format!("{}/{step}", opts.env.api_base());
-    let resp = client
-        .post(&url)
-        .header("User-Agent", &opts.user_agent)
-        .header("Content-Type", "application/json")
-        .header("X-Rsi-Token", &creds.session_token)
-        .header("X-Rsi-Device", &creds.device_token)
-        .json(&payload)
-        .send()
-        .await?;
-
-    let env: Envelope = resp.json().await?;
-    if env.code.as_deref() == Some("ErrDeprecatedApi") {
-        return Err(Error::LauncherOutdated);
-    }
-    if env.success != 1 {
-        return Err(Error::Mint {
-            step,
-            success: env.success,
-            code: env.code,
-        });
-    }
-    Ok(env.data)
+/// One platform's launcher API with its signed-in session.
+struct Api<'a> {
+    client: &'a reqwest::Client,
+    env: Env,
+    user_agent: &'a str,
+    /// `X-Rsi-Token` on live, `X-Rsi-PTU-Token` on PTU; `None` before sign-in.
+    session: Option<(String, String)>,
+    device: &'a str,
 }
 
-/// Run the three-step mint flow and return a [`Session`].
+impl<'a> Api<'a> {
+    /// The live API on the stored launcher session.
+    fn live(client: &'a reqwest::Client, creds: &'a Credentials, opts: &'a MintOptions) -> Self {
+        Self {
+            client,
+            env: Env::Live,
+            user_agent: &opts.user_agent,
+            session: Some(("X-Rsi-Token".into(), creds.session_token.clone())),
+            device: &creds.device_token,
+        }
+    }
+
+    /// Sign in to `env` from this live session as the launcher does:
+    /// `account/claims` here, `signin/claims` there.
+    async fn sign_in(&self, env: Env) -> Result<Api<'a>> {
+        let claims = self.call("account/claims", json!({})).await?;
+        let mut other = Api {
+            client: self.client,
+            env,
+            user_agent: self.user_agent,
+            session: None,
+            device: self.device,
+        };
+        let data = other
+            .call("signin/claims", json!({ "claims": claims }))
+            .await?;
+        let field = |key: &str| {
+            data.get(key)
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty())
+                .map(str::to_string)
+                .ok_or_else(|| Error::Invalid(format!("signin/claims returned no {key}")))
+        };
+        other.session = Some((
+            format!("X-{}", field("session_name")?),
+            field("session_id")?,
+        ));
+        Ok(other)
+    }
+
+    async fn call(&self, step: &'static str, payload: Value) -> Result<Value> {
+        let url = format!("{}/{step}", self.env.api_base());
+        let mut req = self
+            .client
+            .post(&url)
+            .header("User-Agent", self.user_agent)
+            .header("Content-Type", "application/json")
+            .header("X-Rsi-Device", self.device);
+        if let Some((header, token)) = &self.session {
+            req = req.header(header.as_str(), token);
+        }
+        let resp = req.json(&payload).send().await?;
+
+        let status = resp.status().as_u16();
+        let content_type = resp
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("no content type")
+            .to_string();
+        // An error envelope may come with a 4xx status; only a non-JSON body
+        // is unreadable.
+        let envelope = if content_type.starts_with("application/json") {
+            resp.json::<Envelope>().await.ok()
+        } else {
+            None
+        };
+        let Some(env) = envelope else {
+            return Err(Error::LauncherHttp {
+                step,
+                status,
+                content_type,
+            });
+        };
+        if env.code.as_deref() == Some("ErrDeprecatedApi") {
+            return Err(Error::LauncherOutdated);
+        }
+        if env.success != 1 {
+            return Err(Error::Mint {
+                step,
+                success: env.success,
+                code: env.code,
+            });
+        }
+        Ok(env.data)
+    }
+}
+
+/// Mint a [`Session`] for `opts.env`. `games/release` on the live API names
+/// the channel's endpoint; the token comes from the environment's own API,
+/// after signing in to it for [`Env::Ptu`]. Returns [`Error::EnvClosed`] if no
+/// channel of that environment is open to this account.
 pub async fn mint_session(creds: &Credentials, opts: &MintOptions) -> Result<Session> {
     let client = reqwest::Client::new();
+    let live = Api::live(&client, creds, opts);
 
-    let claims = call(&client, creds, opts, "games/claims", json!({})).await?;
-
-    let release = call(
-        &client,
-        creds,
-        opts,
-        "games/release",
-        json!({ "claims": claims, "gameId": opts.game, "channelId": opts.channel }),
-    )
-    .await?;
+    let claims = live.call("games/claims", json!({})).await?;
+    let channel = match opts.env {
+        Env::Live => "LIVE".to_string(),
+        Env::Ptu => {
+            let data = live
+                .call("games/library", json!({ "claims": claims }))
+                .await?;
+            let games = parse_library(&data)
+                .ok_or_else(|| Error::Invalid("games/library: unexpected shape".into()))?;
+            ptu_channel(&games, &opts.game).ok_or(Error::EnvClosed { env: "PTU" })?
+        }
+    };
+    let release = live
+        .call(
+            "games/release",
+            json!({ "claims": claims, "gameId": opts.game, "channelId": channel }),
+        )
+        .await?;
 
     let services_endpoint = release
         .get("servicesEndpoint")
@@ -162,14 +229,15 @@ pub async fn mint_session(creds: &Credentials, opts: &MintOptions) -> Result<Ses
         .and_then(Value::as_str)
         .map(str::to_string);
 
-    let token_data = call(
-        &client,
-        creds,
-        opts,
-        "games/token",
-        json!({ "claims": claims, "gameId": opts.game }),
-    )
-    .await?;
+    let token_payload = |claims: &Value| json!({ "claims": claims, "gameId": opts.game });
+    let token_data = match opts.env {
+        Env::Live => live.call("games/token", token_payload(&claims)).await?,
+        Env::Ptu => {
+            let api = live.sign_in(Env::Ptu).await?;
+            let claims = api.call("games/claims", json!({})).await?;
+            api.call("games/token", token_payload(&claims)).await?
+        }
+    };
     let jwt = token_data
         .get("token")
         .and_then(Value::as_str)
@@ -184,24 +252,37 @@ pub async fn mint_session(creds: &Credentials, opts: &MintOptions) -> Result<Ses
     })
 }
 
+/// The PTU-servers channel of `game` to mint on: `PTU`, else `EPTU`, else any
+/// other channel on a PTU platform.
+fn ptu_channel(games: &[Game], game: &str) -> Option<String> {
+    let channels: Vec<&GameChannel> = games
+        .iter()
+        .find(|g| g.id == game)?
+        .channels
+        .iter()
+        .filter(|c| matches!(c.platform_id.as_str(), "ptu" | "eptu"))
+        .collect();
+    ["PTU", "EPTU"]
+        .iter()
+        .find_map(|id| channels.iter().find(|c| c.id == *id))
+        .or(channels.first())
+        .map(|c| c.id.clone())
+}
+
 /// The games and channels **this account** may play — what the launcher's
-/// game selector shows (`games/claims` → `games/library`; `opts.game` and
-/// `opts.channel` are unused).
+/// game selector shows (`games/claims` → `games/library` on the live API;
+/// `opts.env` and `opts.game` are unused).
 ///
 /// Account-scoped: a test channel (PTU, EPTU, HOTFIX, TECH-PREVIEW) appears
 /// only while open *and* open to this account. The API answers a closed
 /// channel and one this account can't play alike.
 pub async fn library(creds: &Credentials, opts: &MintOptions) -> Result<Vec<Game>> {
     let client = reqwest::Client::new();
-    let claims = call(&client, creds, opts, "games/claims", json!({})).await?;
-    let data = call(
-        &client,
-        creds,
-        opts,
-        "games/library",
-        json!({ "claims": claims }),
-    )
-    .await?;
+    let live = Api::live(&client, creds, opts);
+    let claims = live.call("games/claims", json!({})).await?;
+    let data = live
+        .call("games/library", json!({ "claims": claims }))
+        .await?;
     parse_library(&data).ok_or_else(|| Error::Invalid("games/library: unexpected shape".into()))
 }
 
@@ -356,12 +437,29 @@ mod tests {
         assert!(parse_library(&json!({"games": [{"name": "no id"}]})).is_none());
     }
 
+    #[test]
+    fn picks_ptu_channel() {
+        let lib = |chs: Value| parse_library(&json!({"games": [{"id": "SC", "channels": chs}]}));
+        let ch = |id: &str, p: &str| json!({"id": id, "platformId": p});
+        let both = lib(json!([
+            ch("LIVE", "prod"),
+            ch("EPTU", "eptu"),
+            ch("PTU", "ptu")
+        ]))
+        .unwrap();
+        assert_eq!(ptu_channel(&both, "SC").as_deref(), Some("PTU"));
+        let eptu = lib(json!([ch("LIVE", "prod"), ch("EPTU", "eptu")])).unwrap();
+        assert_eq!(ptu_channel(&eptu, "SC").as_deref(), Some("EPTU"));
+        let live = lib(json!([ch("LIVE", "prod"), ch("HOTFIX", "prod")])).unwrap();
+        assert_eq!(ptu_channel(&live, "SC"), None);
+    }
+
     /// The account's library, live (needs a signed-in RSI launcher).
     #[tokio::test]
     #[ignore = "live: needs the launcher session"]
     async fn live_library() {
         let creds = crate::store::read_credentials().unwrap();
-        let games = library(&creds, &MintOptions::from_credentials(&creds))
+        let games = library(&creds, &MintOptions::from_credentials(&creds, Env::Live))
             .await
             .unwrap();
         let sc = games.iter().find(|g| g.id == "SC").unwrap();

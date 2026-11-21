@@ -20,15 +20,18 @@ pub(crate) struct PlayerSession {
 }
 
 /// Resolve the account's current character via `GetCurrentPlayer`. Returns
-/// [`Error::NoCurrentPlayer`] if there is no player record or an empty JWT.
+/// [`Error::NoCurrentPlayer`] if there is no player record or an empty JWT. A
+/// channel the account has no character on answers `Internal` "Player not
+/// found"
 pub(crate) async fn current_player(channel: &Channel, account_jwt: &str) -> Result<PlayerSession> {
     let auth = BearerAuth::new(account_jwt)?;
     let mut client = IdentityServiceClient::with_interceptor(channel.clone(), auth);
 
-    let response = client
-        .get_current_player(GetCurrentPlayerRequest {})
-        .await?
-        .into_inner();
+    let response = match client.get_current_player(GetCurrentPlayerRequest {}).await {
+        Ok(r) => r.into_inner(),
+        Err(s) if s.message() == "Player not found" => return Err(Error::NoCurrentPlayer),
+        Err(s) => return Err(s.into()),
+    };
 
     let geid = response.player.map(|p| p.geid).filter(|g| *g != 0);
     match (geid, response.jwt) {

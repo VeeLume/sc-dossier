@@ -5,7 +5,9 @@
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let dossier = sc_dossier::Dossier::from_launcher("sc-dossier-example/0.3").await?;
+    let dossier =
+        sc_dossier::Dossier::from_launcher("sc-dossier-example/0.3", sc_dossier::auth::Env::Live)
+            .await?;
     let missions = dossier.active_missions().await?;
     eprintln!("[+] {} active mission(s)", missions.len());
     for m in &missions {

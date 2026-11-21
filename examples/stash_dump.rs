@@ -9,7 +9,9 @@ use sc_dossier::{ItemNode, LoadoutSlot, Ownership};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let dossier = sc_dossier::Dossier::from_launcher("sc-dossier-example/0.4").await?;
+    let dossier =
+        sc_dossier::Dossier::from_launcher("sc-dossier-example/0.4", sc_dossier::auth::Env::Live)
+            .await?;
 
     let stashes = dossier.stashes().await?;
     for s in &stashes.stashes {

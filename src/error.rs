@@ -51,6 +51,25 @@ pub enum Error {
         code: Option<String>,
     },
 
+    /// A launcher v3 step answered with an error status or a body that isn't
+    /// JSON (an HTML error page, for example), so there is no envelope to read.
+    #[error("launcher step '{step}' answered HTTP {status} ({content_type})")]
+    LauncherHttp {
+        /// The launcher v3 endpoint that failed.
+        step: &'static str,
+        /// The HTTP status code.
+        status: u16,
+        /// The response's `Content-Type`, or `"no content type"`.
+        content_type: String,
+    },
+
+    /// No channel of the requested server environment is open to this account
+    #[error("no {env} channel is open to this account")]
+    EnvClosed {
+        /// The environment, e.g. `"PTU"`.
+        env: &'static str,
+    },
+
     /// The launcher API rejected the request as from an outdated launcher
     /// (`ErrDeprecatedApi`). Update the RSI launcher.
     #[error("the launcher API reports this launcher version as outdated (ErrDeprecatedApi)")]

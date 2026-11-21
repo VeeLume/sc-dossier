@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.16.0
+
+- **Breaking:** `Dossier::from_launcher(user_agent, env)` and
+  `MintOptions::from_credentials(creds, env)` take `auth::Env::{Live, Ptu}`,
+  the server environment (and so the account data) to read. The channel
+  selected in the launcher is no longer read. Fixes `from_launcher` failing
+  with "error decoding response body" while the launcher is on PTU.
+  `MintOptions.channel`, `Env::Prod`, `Env::Staging` and
+  `Env::from_platform_id` are gone; `Env` is `non_exhaustive`.
+- PTU sign-in: `Env::Ptu` mints on channel `PTU`, else `EPTU` (from the
+  account's library), signing in to the PTU launcher API from the live
+  session (`account/claims` → `signin/claims`, header `X-Rsi-PTU-Token`) as
+  the launcher does. `Error::EnvClosed` if no PTU channel is open.
+- An environment the account has no character on reports
+  `Error::NoCurrentPlayer` (the backend's "Player not found").
+- `Error::LauncherHttp { step, status, content_type }`: a launcher step that
+  answers an error status with a non-JSON body (an HTML error page) now names
+  the step and the status instead of a serde message.
+
 ## v0.15.0
 
 - `tokens`: the player's mission token wallet

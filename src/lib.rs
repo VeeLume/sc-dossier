@@ -5,7 +5,7 @@
 //! ```no_run
 //! # #[cfg(feature = "backend")]
 //! # async fn run() -> Result<(), sc_dossier::Error> {
-//! let dossier = sc_dossier::Dossier::from_launcher("my-app/1.0").await?;
+//! let dossier = sc_dossier::Dossier::from_launcher("my-app/1.0", sc_dossier::auth::Env::Live).await?;
 //! let blueprints = dossier.owned_blueprints().await?;
 //! # Ok(()) }
 //! ```
@@ -86,8 +86,6 @@ pub use error::{Error, Result};
 #[cfg(feature = "backend")]
 pub use events::{EventProgress, EventState, EventStatus};
 #[cfg(feature = "backend")]
-pub use tokens::{MissionToken, TokenKind};
-#[cfg(feature = "backend")]
 pub use items::{Context, Inventory, InventoryType, Item, Location, Resource};
 #[cfg(feature = "backend")]
 pub use loadouts::{Loadout, LoadoutEntry, LoadoutItem, LoadoutSlot};
@@ -99,6 +97,8 @@ pub use reputation::{Reputation, Standing};
 pub use stash::{
     port_crc, Crafted, Ingredient, IngredientKind, ItemNode, Ownership, Stash, Stashes,
 };
+#[cfg(feature = "backend")]
+pub use tokens::{MissionToken, TokenKind};
 
 #[cfg(feature = "backend")]
 use tokio::sync::OnceCell;
@@ -117,12 +117,14 @@ pub struct Dossier {
 
 #[cfg(feature = "backend")]
 impl Dossier {
-    /// Read launcher credentials, mint a game token, and connect. `user_agent`
-    /// is the gRPC user-agent for backend calls. Returns [`Error::Mint`] if the
-    /// stored session is stale.
-    pub async fn from_launcher(user_agent: &str) -> Result<Self> {
+    /// Read launcher credentials, mint a game token for `env` (live or PTU
+    /// servers), and connect. Each environment has its own account data; the
+    /// channel selected in the launcher is not read. `user_agent` is the gRPC
+    /// user-agent for backend calls. Returns [`Error::Mint`] if the stored
+    /// session is stale, [`Error::EnvClosed`] if no PTU channel is open.
+    pub async fn from_launcher(user_agent: &str, env: auth::Env) -> Result<Self> {
         let creds = store::read_credentials()?;
-        let opts = auth::MintOptions::from_credentials(&creds);
+        let opts = auth::MintOptions::from_credentials(&creds, env);
         let session = auth::mint_session(&creds, &opts).await?;
         Self::from_session(session, user_agent).await
     }
