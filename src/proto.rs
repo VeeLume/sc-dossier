@@ -47,6 +47,16 @@ pub(crate) mod sc {
                     tonic::include_proto!("sc.external.services.mission_scenario.v1");
                 }
             }
+            pub(crate) mod presence {
+                pub(crate) mod v1 {
+                    tonic::include_proto!("sc.external.services.presence.v1");
+                }
+            }
+            pub(crate) mod contacts {
+                pub(crate) mod v1 {
+                    tonic::include_proto!("sc.external.services.contacts.v1");
+                }
+            }
         }
         pub(crate) mod common {
             pub(crate) mod api {
@@ -90,6 +100,10 @@ pub(crate) use sc::external::common::api::v1 as common_api;
 pub(crate) use sc::external::common::mission::v1 as mission;
 #[cfg(feature = "backend")]
 pub(crate) use sc::external::services::blueprint_library::v1 as blueprint_library;
+#[cfg(feature = "backend")]
+pub(crate) use sc::external::services::contacts::v1 as contacts;
+#[cfg(feature = "backend")]
+pub(crate) use sc::external::services::presence::v1 as presence;
 #[cfg(feature = "backend")]
 pub(crate) use sc::external::services::entitlement::v2 as entitlement;
 #[cfg(feature = "backend")]

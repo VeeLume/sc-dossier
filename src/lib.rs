@@ -54,6 +54,8 @@ pub mod error;
 #[cfg(feature = "backend")]
 pub mod events;
 #[cfg(feature = "backend")]
+pub mod friends;
+#[cfg(feature = "backend")]
 pub mod items;
 #[cfg(feature = "backend")]
 pub mod loadouts;
@@ -85,6 +87,8 @@ pub use entitlements::{Entitlement, EntitlementSource, EntitlementStatus};
 pub use error::{Error, Result};
 #[cfg(feature = "backend")]
 pub use events::{EventProgress, EventState, EventStatus};
+#[cfg(feature = "backend")]
+pub use friends::{Activity, Friend, Presence};
 #[cfg(feature = "backend")]
 pub use items::{Context, Inventory, InventoryType, Item, Location, Resource};
 #[cfg(feature = "backend")]
@@ -222,6 +226,13 @@ impl Dossier {
     pub async fn mission_tokens(&self) -> Result<Vec<MissionToken>> {
         let player = self.player().await?;
         tokens::query(&self.channel, &player.jwt).await
+    }
+
+    /// The friend list with presence (`None` = offline). Poll to follow
+    /// changes. See [`friends`].
+    pub async fn friends(&self) -> Result<Vec<Friend>> {
+        let player = self.player().await?;
+        friends::query(&self.channel, &player.jwt).await
     }
 
     /// The current run of each event, by `MissionScenario` GUID. See [`events`].

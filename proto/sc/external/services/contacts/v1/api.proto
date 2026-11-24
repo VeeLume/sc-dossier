@@ -1,0 +1,22 @@
+// Carved from StarCitizen.exe 4.10.2; ListContacts only.
+syntax = "proto3";
+
+package sc.external.services.contacts.v1;
+
+import "sc/external/services/contacts/v1/types.proto";
+import "sc/external/common/api/v1/pagination.proto";
+
+message ListContactsRequest {
+  repeated .sc.external.services.contacts.v1.RelationshipType relationship_types = 1;
+  repeated int32 target_account_ids = 3;
+  .sc.external.common.api.v1.PaginationArguments pagination = 2;
+}
+
+message ListContactsResponse {
+  repeated .sc.external.services.contacts.v1.Contact contacts = 1;
+  .sc.external.common.api.v1.PaginationInfo page_info = 2;
+}
+
+service ContactsService {
+  rpc ListContacts(.sc.external.services.contacts.v1.ListContactsRequest) returns (.sc.external.services.contacts.v1.ListContactsResponse);
+}

@@ -164,6 +164,7 @@ pub(crate) fn decode_entities(s: &str) -> String {
                 "ndash" => Some('\u{2013}'),
                 "mdash" => Some('\u{2014}'),
                 "hellip" => Some('\u{2026}'),
+                "lowbar" => Some('_'),
                 _ => ent
                     .strip_prefix("#x")
                     .or_else(|| ent.strip_prefix("#X"))

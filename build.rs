@@ -30,6 +30,10 @@ const BACKEND_PROTOS: &[&str] = &[
     "proto/sc/external/common/mission/v1/scenarios.proto",
     "proto/sc/external/services/mission_token/v1/api.proto",
     "proto/sc/external/services/mission_scenario/v1/api.proto",
+    // Friend list with presence, carved from the exe.
+    "proto/sc/external/services/presence/v1/types.proto",
+    "proto/sc/external/services/contacts/v1/types.proto",
+    "proto/sc/external/services/contacts/v1/api.proto",
 ];
 
 /// The game's local telemetry service, carved from `StarCitizen.exe`.

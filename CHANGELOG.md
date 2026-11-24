@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.17.0
+
+- `friends`: the friend list with presence (`ContactsService.ListContacts`).
+  `Dossier::friends() -> Vec<Friend>`: handle, display name (HTML entities
+  decoded), account id, player geid, `presence: Option<Presence>` (`None` =
+  offline) with `Activity::{Menu, Universe, Other}`. Poll to follow changes;
+  the push channel delivers no presence updates.
+- `examples/friends_dump.rs`.
+
 ## v0.16.0
 
 - **Breaking:** `Dossier::from_launcher(user_agent, env)` and
